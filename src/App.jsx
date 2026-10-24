@@ -85,6 +85,23 @@ const Icons = {
       <path d="M20 16.2A4.5 4.5 0 0 0 17.5 8h-1.8A7 7 0 1 0 4 14.9"/>
       <polyline points="9 15 12 18 17 13"/>
     </svg>
+  ),
+  ListLayout: () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="8" y1="6" x2="21" y2="6"/>
+      <line x1="8" y1="12" x2="21" y2="12"/>
+      <line x1="8" y1="18" x2="21" y2="18"/>
+      <line x1="3" y1="6" x2="3.01" y2="6"/>
+      <line x1="3" y1="12" x2="3.01" y2="12"/>
+      <line x1="3" y1="18" x2="3.01" y2="18"/>
+    </svg>
+  ),
+  ParagraphLayout: () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M13 4v16"/>
+      <path d="M17 4v16"/>
+      <path d="M19 4H9.5a4.5 4.5 0 0 0 0 9H13"/>
+    </svg>
   )
 };
 
@@ -110,6 +127,7 @@ export default function App() {
   const [fontSize, setFontSize] = useState(() => parseInt(localStorage.getItem('alkitab_font_size') || '19', 10));
   const [fontFamily, setFontFamily] = useState(() => localStorage.getItem('alkitab_font_family') || 'serif');
   const [lineHeight, setLineHeight] = useState(() => localStorage.getItem('alkitab_line_height') || '1.85');
+  const [readerLayout, setReaderLayout] = useState(() => localStorage.getItem('alkitab_reader_layout') || 'list');
 
   // Reading progress scroll state
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -232,8 +250,9 @@ export default function App() {
     localStorage.setItem('alkitab_book_id', currentBookId);
     localStorage.setItem('alkitab_chapter', currentChapter);
     localStorage.setItem('alkitab_version', version);
+    localStorage.setItem('alkitab_reader_layout', readerLayout);
     setOfflineStatus(localStorage.getItem(`alkitab_offline_synced_${version}`) === 'true');
-  }, [currentBookId, currentChapter, version]);
+  }, [currentBookId, currentChapter, version, readerLayout]);
 
   // Load books metadata
   useEffect(() => {
@@ -674,6 +693,15 @@ export default function App() {
               </button>
             </div>
 
+            {/* Layout Toggle: List vs Paragraph */}
+            <button 
+              className={`icon-btn ${readerLayout === 'list' ? 'active' : ''}`}
+              onClick={() => setReaderLayout((prev) => prev === 'list' ? 'paragraph' : 'list')}
+              title={readerLayout === 'list' ? t(lang, 'viewParagraph') : t(lang, 'viewVerse')}
+            >
+              {readerLayout === 'list' ? <Icons.ParagraphLayout /> : <Icons.ListLayout />}
+            </button>
+
             <button 
               className={`icon-btn ${showSearch ? 'active' : ''}`}
               onClick={() => setShowSearch(true)} 
@@ -708,42 +736,92 @@ export default function App() {
               <p>{t(lang, 'loadingScripture')}</p>
             </div>
           ) : (
-            <>
-              <div className="chapter-header">
+            <div className="reader-paper-canvas">
+              {/* EDITORIAL CHAPTER HEADER */}
+              <div className="chapter-header-box">
+                <div className="chapter-category-chip">
+                  <span>{currentBookMeta?.testament === 'PL' ? t(lang, 'otTestament') : t(lang, 'ntTestament')}</span>
+                  <span className="dot-divider">•</span>
+                  <span>{getBookCategory(currentBookMeta)}</span>
+                </div>
+
                 <h1 className="chapter-book-title">{currentBookDisplayName}</h1>
-                <div className="chapter-subtitle">
-                  {t(lang, 'chapterBadge', {
-                    chapter: currentChapter,
-                    category: getBookCategory(currentBookMeta)
-                  })} • <span style={{ fontWeight: 800, color: 'var(--accent)' }}>{version.toUpperCase()}</span>
+
+                <div className="chapter-badge-wrap">
+                  <div className="chapter-pill">
+                    <span className="chapter-pill-label">{t(lang, 'chapterNum', { chapter: currentChapter })}</span>
+                    <span className="chapter-pill-version">{version.toUpperCase()}</span>
+                  </div>
+                </div>
+
+                <div className="chapter-ornament-divider">
+                  <span className="ornament-line" />
+                  <span className="ornament-gem">✦</span>
+                  <span className="ornament-line" />
                 </div>
               </div>
 
-              <div className="verses-list">
-                {chapterVerses.map((verseObj) => {
-                  const key = `${currentBookId}:${currentChapter}:${verseObj.verse}`;
-                  const isSelected = selectedVerse?.verse === verseObj.verse;
-                  const isBookmarked = bookmarks.includes(key);
-                  const hlColor = highlights[key];
+              {/* VERSES PRESENTATION: LIST VS PARAGRAPH */}
+              {readerLayout === 'list' ? (
+                <div className="verses-flow-list">
+                  {chapterVerses.map((verseObj) => {
+                    const key = `${currentBookId}:${currentChapter}:${verseObj.verse}`;
+                    const isSelected = selectedVerse?.verse === verseObj.verse;
+                    const isBookmarked = bookmarks.includes(key);
+                    const hlColor = highlights[key];
 
-                  return (
-                    <React.Fragment key={verseObj.verse}>
-                      {verseObj.title && (
-                        <h2 className="pericope-title">{verseObj.title}</h2>
-                      )}
-                      <span 
-                        id={`verse-${verseObj.verse}`}
-                        className={`verse-item ${isSelected ? 'selected' : ''} ${isBookmarked ? 'bookmarked' : ''} ${hlColor ? `hl-${hlColor}` : ''}`}
-                        onClick={() => setSelectedVerse(isSelected ? null : verseObj)}
-                      >
-                        <sup className="verse-num">{verseObj.verse}</sup>
-                        <span className="verse-text">{verseObj.text} </span>
-                      </span>
-                    </React.Fragment>
-                  );
-                })}
-              </div>
-            </>
+                    return (
+                      <React.Fragment key={verseObj.verse}>
+                        {verseObj.title && (
+                          <div className="pericope-section-banner">
+                            <span className="pericope-gem">✦</span>
+                            <span className="pericope-title-text">{verseObj.title}</span>
+                            <div className="pericope-line" />
+                          </div>
+                        )}
+                        <div 
+                          id={`verse-${verseObj.verse}`}
+                          className={`verse-card-row ${isSelected ? 'selected' : ''} ${isBookmarked ? 'bookmarked' : ''} ${hlColor ? `hl-${hlColor}` : ''}`}
+                          onClick={() => setSelectedVerse(isSelected ? null : verseObj)}
+                        >
+                          <div className="verse-num-badge">{verseObj.verse}</div>
+                          <div className="verse-card-text">{verseObj.text}</div>
+                        </div>
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="verses-flow-paragraph">
+                  {chapterVerses.map((verseObj) => {
+                    const key = `${currentBookId}:${currentChapter}:${verseObj.verse}`;
+                    const isSelected = selectedVerse?.verse === verseObj.verse;
+                    const isBookmarked = bookmarks.includes(key);
+                    const hlColor = highlights[key];
+
+                    return (
+                      <React.Fragment key={verseObj.verse}>
+                        {verseObj.title && (
+                          <div className="pericope-section-banner">
+                            <span className="pericope-gem">✦</span>
+                            <span className="pericope-title-text">{verseObj.title}</span>
+                            <div className="pericope-line" />
+                          </div>
+                        )}
+                        <span 
+                          id={`verse-${verseObj.verse}`}
+                          className={`verse-item-inline ${isSelected ? 'selected' : ''} ${isBookmarked ? 'bookmarked' : ''} ${hlColor ? `hl-${hlColor}` : ''}`}
+                          onClick={() => setSelectedVerse(isSelected ? null : verseObj)}
+                        >
+                          <sup className="verse-num-pill">{verseObj.verse}</sup>
+                          <span className="verse-text">{verseObj.text} </span>
+                        </span>
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </main>
@@ -1316,6 +1394,25 @@ export default function App() {
                     onClick={() => setLineHeight('2.1')}
                   >
                     {t(lang, 'spacingLoose')}
+                  </button>
+                </div>
+              </div>
+
+              {/* Reading Layout Mode */}
+              <div className="setting-group">
+                <label className="setting-label">{t(lang, 'layoutMode')}</label>
+                <div className="font-family-toggle">
+                  <button 
+                    className={`font-family-btn ${readerLayout === 'list' ? 'active' : ''}`}
+                    onClick={() => setReaderLayout('list')}
+                  >
+                    📋 {t(lang, 'viewVerse')}
+                  </button>
+                  <button 
+                    className={`font-family-btn ${readerLayout === 'paragraph' ? 'active' : ''}`}
+                    onClick={() => setReaderLayout('paragraph')}
+                  >
+                    📖 {t(lang, 'viewParagraph')}
                   </button>
                 </div>
               </div>
