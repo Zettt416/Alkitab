@@ -1166,3 +1166,184 @@ input {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ==========================================================================
+   VERSION SELECTOR & MULTI-LANGUAGE COMPONENTS
+   ========================================================================== */
+
+.version-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(180, 83, 9, 0.28));
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 0.18rem 0.55rem;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.version-pill-btn:hover {
+  transform: translateY(-1px) scale(1.04);
+  background: var(--accent);
+  color: var(--text-inverse);
+  box-shadow: 0 4px 12px var(--accent-glow);
+}
+
+.version-options-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.version-card-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1rem 1.15rem;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface);
+  border: 1.5px solid var(--border-subtle);
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.version-card-btn:hover {
+  background-color: var(--bg-surface-elevated);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.version-card-btn.active {
+  background-color: var(--accent-light);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.version-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.version-card-title {
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.version-lang-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  background-color: var(--bg-surface-elevated);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.version-card-btn.active .version-lang-badge {
+  background-color: var(--accent);
+  color: var(--text-inverse);
+  border-color: var(--accent);
+}
+
+.version-card-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-full);
+  background-color: var(--accent);
+  color: var(--text-inverse);
+}
+
+.version-card-desc {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* Language Switcher */
+.lang-toggle-bar {
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: 2px;
+}
+
+.lang-btn {
+  padding: 0.25rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.lang-btn.active {
+  background-color: var(--accent);
+  color: var(--text-inverse);
+  box-shadow: 0 2px 6px var(--accent-glow);
+}
+
+/* Verse Comparison Modal */
+.compare-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.compare-item-card {
+  padding: 1rem 1.15rem;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: border-color var(--transition-fast);
+}
+
+.compare-item-card:hover {
+  border-color: var(--accent);
+  background-color: var(--bg-surface-elevated);
+}
+
+.compare-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.compare-item-version {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.compare-item-text {
+  font-family: var(--font-reader);
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: var(--text-primary);
+}

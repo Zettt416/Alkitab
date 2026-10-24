@@ -1,9 +1,10 @@
-const CACHE_NAME = 'alkitab-v1';
+const CACHE_NAME = 'alkitab-v2';
 const CORE_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
   '/icon.svg',
+  '/favicon.svg',
   '/data/books.json'
 ];
 
@@ -28,8 +29,8 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // For data/books/ or assets, use Cache First with Network Fallback
-  if (url.pathname.includes('/data/books') || url.pathname.includes('/assets/')) {
+  // For /data/ or assets/, use Cache First with Network Fallback
+  if (url.pathname.includes('/data/') || url.pathname.includes('/assets/')) {
     event.respondWith(
       caches.match(event.request).then((cachedResponse) => {
         if (cachedResponse) return cachedResponse;
@@ -63,18 +64,19 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Listen for background precaching of all books
+// Listen for background precaching
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'CACHE_ALL_BOOKS') {
+  if (event.data && (event.data.type === 'CACHE_ALL_BOOKS' || event.data.type === 'CACHE_VERSION')) {
+    const version = event.data.version || 'tb';
     caches.open(CACHE_NAME).then((cache) => {
-      const bookUrls = [];
+      const urls = ['/data/books.json'];
       for (let i = 1; i <= 66; i++) {
-        bookUrls.push(`/data/books/${i}.json`);
+        urls.push(`/data/${version}/${i}.json`);
       }
-      return cache.addAll(bookUrls);
+      return cache.addAll(urls);
     }).then(() => {
       if (event.source) {
-        event.source.postMessage({ type: 'ALL_BOOKS_CACHED' });
+        event.source.postMessage({ type: 'ALL_BOOKS_CACHED', version: event.data.version });
       }
     });
   }

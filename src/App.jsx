@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { BIBLE_VERSIONS, t } from './i18n.js';
 
 // Lightweight SVG Icons (Zero dependencies - ponytail)
 const Icons = {
@@ -51,6 +52,13 @@ const Icons = {
       <polyline points="21 15 16 10 5 21"/>
     </svg>
   ),
+  Compare: () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="20" x2="18" y2="10"/>
+      <line x1="12" y1="20" x2="12" y2="4"/>
+      <line x1="6" y1="20" x2="6" y2="14"/>
+    </svg>
+  ),
   Download: () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -81,10 +89,15 @@ const Icons = {
 };
 
 export default function App() {
+  // Bible Version & Language State
+  const [version, setVersion] = useState(() => localStorage.getItem('alkitab_version') || 'tb');
+  const [lang, setLang] = useState(() => localStorage.getItem('alkitab_lang') || 'id');
+  const [showVersionModal, setShowVersionModal] = useState(false);
+
   // Navigation & Books State
   const [books, setBooks] = useState([]);
   const [currentBookId, setCurrentBookId] = useState(() => {
-    return parseInt(localStorage.getItem('alkitab_book_id') || '43', 10); // Yohanes
+    return parseInt(localStorage.getItem('alkitab_book_id') || '43', 10); // Yohanes / John
   });
   const [currentChapter, setCurrentChapter] = useState(() => {
     return parseInt(localStorage.getItem('alkitab_chapter') || '1', 10);
@@ -125,7 +138,7 @@ export default function App() {
   // Modals & Panels
   const [showPicker, setShowPicker] = useState(false);
   const [pickerTestament, setPickerTestament] = useState('ALL');
-  const [pickerCategory, setPickerCategory] = useState('Semua');
+  const [pickerCategory, setPickerCategory] = useState('ALL');
   const [pickerBook, setPickerBook] = useState(null);
 
   const [showAppearance, setShowAppearance] = useState(false);
@@ -139,10 +152,31 @@ export default function App() {
   const [cardTheme, setCardTheme] = useState('amber'); // amber, midnight, parchment, emerald
   const canvasRef = useRef(null);
 
+  // Verse Comparison Modal
+  const [showCompareModal, setShowCompareModal] = useState(false);
+  const [compareData, setCompareData] = useState([]);
+  const [comparing, setComparing] = useState(false);
+
   // Offline Sync & Toast
-  const [offlineStatus, setOfflineStatus] = useState(() => localStorage.getItem('alkitab_offline_synced') === 'true');
+  const [offlineStatus, setOfflineStatus] = useState(() => {
+    return localStorage.getItem(`alkitab_offline_synced_${version}`) === 'true';
+  });
   const [syncingOffline, setSyncingOffline] = useState(false);
   const [toast, setToast] = useState(null);
+
+  // Helpers for bilingual metadata
+  const getBookName = (b) => {
+    if (!b) return '';
+    return lang === 'en' ? (b.name_en || b.name) : (b.name_id || b.name);
+  };
+  const getBookAbbr = (b) => {
+    if (!b) return '';
+    return lang === 'en' ? (b.abbr_en || b.abbr) : (b.abbr_id || b.abbr);
+  };
+  const getBookCategory = (b) => {
+    if (!b) return '';
+    return lang === 'en' ? (b.category_en || b.category) : (b.category_id || b.category);
+  };
 
   // Track scroll progress for reading bar
   useEffect(() => {
@@ -184,11 +218,22 @@ export default function App() {
     localStorage.setItem('alkitab_line_height', lineHeight);
   }, [fontSize, fontFamily, lineHeight]);
 
-  // Save location
+  // Language & Document Title application
+  useEffect(() => {
+    document.documentElement.lang = lang;
+    localStorage.setItem('alkitab_lang', lang);
+    document.title = lang === 'en'
+      ? 'Holy Bible - Offline & Distraction-Free Reader'
+      : 'Alkitab Digital Indonesia - Baca Firman Offline & Nyaman';
+  }, [lang]);
+
+  // Save location & version
   useEffect(() => {
     localStorage.setItem('alkitab_book_id', currentBookId);
     localStorage.setItem('alkitab_chapter', currentChapter);
-  }, [currentBookId, currentChapter]);
+    localStorage.setItem('alkitab_version', version);
+    setOfflineStatus(localStorage.getItem(`alkitab_offline_synced_${version}`) === 'true');
+  }, [currentBookId, currentChapter, version]);
 
   // Load books metadata
   useEffect(() => {
@@ -198,32 +243,53 @@ export default function App() {
       .catch((err) => console.error(err));
   }, []);
 
-  // Load current book data
+  // Load current book data for active version
   useEffect(() => {
-    if (bookCache[currentBookId]) {
+    const cacheKey = `${version}:${currentBookId}`;
+    if (bookCache[cacheKey]) {
       setLoading(false);
       return;
     }
     setLoading(true);
-    fetch(`/data/books/${currentBookId}.json`)
-      .then((res) => res.json())
+    fetch(`/data/${version}/${currentBookId}.json`)
+      .then((res) => {
+        if (!res.ok) throw new Error('Version file not found');
+        return res.json();
+      })
       .then((bookData) => {
-        setBookCache((prev) => ({ ...prev, [currentBookId]: bookData }));
+        setBookCache((prev) => ({ ...prev, [cacheKey]: bookData }));
         setLoading(false);
       })
       .catch((err) => {
-        console.error(err);
-        setLoading(false);
+        console.warn(`Fallback to default book for ${version}:`, err);
+        fetch(`/data/books/${currentBookId}.json`)
+          .then((res) => res.json())
+          .then((bookData) => {
+            setBookCache((prev) => ({ ...prev, [cacheKey]: bookData }));
+            setLoading(false);
+          })
+          .catch(() => setLoading(false));
       });
-  }, [currentBookId, bookCache]);
+  }, [currentBookId, version, bookCache]);
 
   const currentBookMeta = books.find((b) => b.id === currentBookId);
-  const currentBookData = bookCache[currentBookId];
+  const currentBookData = bookCache[`${version}:${currentBookId}`];
   const chapterVerses = currentBookData?.chapters?.[currentChapter.toString()] || [];
 
   const showToast = (message) => {
     setToast(message);
     setTimeout(() => setToast(null), 2500);
+  };
+
+  const handleSelectVersion = (verKey) => {
+    setVersion(verKey);
+    setShowVersionModal(false);
+    showToast(`${t(lang, 'changeVersion')}: ${BIBLE_VERSIONS[verKey].short}`);
+  };
+
+  const handleToggleLang = (newLang) => {
+    setLang(newLang);
+    showToast(newLang === 'en' ? 'Language switched to English' : 'Bahasa dialihkan ke Indonesia');
   };
 
   const handlePrevChapter = () => {
@@ -259,6 +325,7 @@ export default function App() {
     setShowPicker(false);
     setShowSearch(false);
     setShowSavedModal(false);
+    setShowCompareModal(false);
     setSelectedVerse(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -279,10 +346,10 @@ export default function App() {
     const updated = { ...highlights };
     if (updated[key] === color) {
       delete updated[key];
-      showToast('Sorotan warna dihapus');
+      showToast(t(lang, 'toastHlRemoved'));
     } else {
       updated[key] = color;
-      showToast('Ayat berhasil disorot');
+      showToast(t(lang, 'toastHlAdded'));
     }
     setHighlights(updated);
     localStorage.setItem('alkitab_highlights', JSON.stringify(updated));
@@ -293,10 +360,10 @@ export default function App() {
     let updated;
     if (bookmarks.includes(key)) {
       updated = bookmarks.filter((k) => k !== key);
-      showToast('Tanda ayat dihapus');
+      showToast(t(lang, 'toastBmRemoved'));
     } else {
       updated = [...bookmarks, key];
-      showToast('Ayat ditambahkan ke daftar simpan');
+      showToast(t(lang, 'toastBmAdded'));
     }
     setBookmarks(updated);
     localStorage.setItem('alkitab_bookmarks', JSON.stringify(updated));
@@ -304,18 +371,20 @@ export default function App() {
 
   const handleCopyVerse = (verseObj) => {
     if (!currentBookMeta) return;
-    const citation = `"${verseObj.text}"\n— ${currentBookMeta.name} ${currentChapter}:${verseObj.verse} (AYT)`;
+    const bookTitle = getBookName(currentBookMeta);
+    const citation = `"${verseObj.text}"\n— ${bookTitle} ${currentChapter}:${verseObj.verse} (${version.toUpperCase()})`;
     navigator.clipboard.writeText(citation).then(() => {
-      showToast('Ayat berhasil disalin');
+      showToast(t(lang, 'toastCopied'));
     });
   };
 
   const handleShareVerse = (verseObj) => {
     if (!currentBookMeta) return;
-    const textToShare = `"${verseObj.text}" — ${currentBookMeta.name} ${currentChapter}:${verseObj.verse} (AYT)`;
+    const bookTitle = getBookName(currentBookMeta);
+    const textToShare = `"${verseObj.text}" — ${bookTitle} ${currentChapter}:${verseObj.verse} (${version.toUpperCase()})`;
     if (navigator.share) {
       navigator.share({
-        title: `${currentBookMeta.name} ${currentChapter}:${verseObj.verse}`,
+        title: `${bookTitle} ${currentChapter}:${verseObj.verse}`,
         text: textToShare
       }).catch(() => {});
     } else {
@@ -323,7 +392,42 @@ export default function App() {
     }
   };
 
-  // DRAW VERSE CARD TO CANVAS (React Bits / Planes aesthetic)
+  // Compare Verse Across Versions (TB, AYT, KJV, WEB)
+  const handleOpenCompare = async (verseObj) => {
+    setSelectedVerse(verseObj);
+    setShowCompareModal(true);
+    setComparing(true);
+    const list = ['tb', 'ayt', 'kjv', 'web'];
+    const results = [];
+
+    for (const vKey of list) {
+      const cacheKey = `${vKey}:${currentBookId}`;
+      let bData = bookCache[cacheKey];
+      if (!bData) {
+        try {
+          const res = await fetch(`/data/${vKey}/${currentBookId}.json`);
+          if (res.ok) {
+            bData = await res.json();
+            setBookCache((prev) => ({ ...prev, [cacheKey]: bData }));
+          }
+        } catch (e) {
+          console.warn('Error loading version for compare:', vKey, e);
+        }
+      }
+      const vText = bData?.chapters?.[currentChapter.toString()]?.find((v) => v.verse === verseObj.verse)?.text;
+      if (vText) {
+        results.push({
+          version: vKey,
+          versionObj: BIBLE_VERSIONS[vKey],
+          text: vText
+        });
+      }
+    }
+    setCompareData(results);
+    setComparing(false);
+  };
+
+  // DRAW VERSE CARD TO CANVAS
   const drawVerseCard = () => {
     if (!canvasRef.current || !selectedVerse || !currentBookMeta) return;
     const canvas = canvasRef.current;
@@ -333,7 +437,6 @@ export default function App() {
     canvas.width = width;
     canvas.height = height;
 
-    // Background Gradient based on Card Theme
     let bgGrad = ctx.createLinearGradient(0, 0, width, height);
     let textColor = '#FFFFFF';
     let quoteColor = 'rgba(255, 255, 255, 0.2)';
@@ -365,17 +468,14 @@ export default function App() {
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, width, height);
 
-    // Decorative Borders
     ctx.strokeStyle = cardTheme === 'parchment' ? 'rgba(180, 83, 9, 0.25)' : 'rgba(255, 255, 255, 0.15)';
     ctx.lineWidth = 4;
     ctx.strokeRect(50, 50, width - 100, height - 100);
 
-    // Watermark / Giant Quote Mark
     ctx.font = 'bold 220px Georgia, serif';
     ctx.fillStyle = quoteColor;
     ctx.fillText('“', 100, 240);
 
-    // Verse Text Word Wrap
     ctx.font = '500 48px "Literata", Georgia, serif';
     ctx.fillStyle = textColor;
     ctx.textAlign = 'center';
@@ -405,15 +505,14 @@ export default function App() {
       ctx.fillText(line, width / 2, startY + (index * lineHeightPx));
     });
 
-    // Reference & Badge
+    const bookTitle = getBookName(currentBookMeta);
     ctx.font = 'bold 36px "Plus Jakarta Sans", sans-serif';
     ctx.fillStyle = refColor;
-    ctx.fillText(`— ${currentBookMeta.name} ${currentChapter}:${selectedVerse.verse} (AYT) —`, width / 2, startY + (lines.length * lineHeightPx) + 80);
+    ctx.fillText(`— ${bookTitle} ${currentChapter}:${selectedVerse.verse} (${version.toUpperCase()}) —`, width / 2, startY + (lines.length * lineHeightPx) + 80);
 
-    // Footer Watermark
     ctx.font = '600 24px "Plus Jakarta Sans", sans-serif';
     ctx.fillStyle = cardTheme === 'parchment' ? 'rgba(44, 36, 29, 0.4)' : 'rgba(255, 255, 255, 0.4)';
-    ctx.fillText('Alkitab Digital Indonesia • alkitab-pi.vercel.app', width / 2, height - 90);
+    ctx.fillText(`${t(lang, 'appTitle')} • baca-alkitab.vercel.app`, width / 2, height - 90);
   };
 
   useEffect(() => {
@@ -422,34 +521,34 @@ export default function App() {
     }
   }, [showCardMaker, cardTheme, selectedVerse]);
 
-  // Download Card as PNG
   const handleDownloadCard = () => {
     if (!canvasRef.current) return;
     const link = document.createElement('a');
-    link.download = `Alkitab-${currentBookMeta?.name}-${currentChapter}-${selectedVerse?.verse}.png`;
+    const bookTitle = getBookName(currentBookMeta);
+    link.download = `Alkitab-${bookTitle}-${currentChapter}-${selectedVerse?.verse}-${version.toUpperCase()}.png`;
     link.href = canvasRef.current.toDataURL('image/png');
     link.click();
-    showToast('Gambar berhasil diunduh!');
+    showToast(t(lang, 'toastCardDownloaded'));
   };
 
-  // Full Offline Precache
+  // Offline Precache per Version
   const handleSyncAllOffline = async () => {
     setSyncingOffline(true);
-    showToast('Sedang mengunduh 66 Kitab ke memori HP...');
+    showToast(t(lang, 'toastDownloading', { version: version.toUpperCase() }));
     try {
       if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({ type: 'CACHE_ALL_BOOKS' });
+        navigator.serviceWorker.controller.postMessage({ type: 'CACHE_VERSION', version });
       }
       for (let i = 1; i <= 66; i++) {
-        await fetch(`/data/books/${i}.json`);
+        await fetch(`/data/${version}/${i}.json`);
       }
       setOfflineStatus(true);
-      localStorage.setItem('alkitab_offline_synced', 'true');
+      localStorage.setItem(`alkitab_offline_synced_${version}`, 'true');
       setSyncingOffline(false);
-      showToast('100% Seluruh Kitab berhasil disimpan offline!');
+      showToast(t(lang, 'toastSynced', { version: version.toUpperCase() }));
     } catch {
       setSyncingOffline(false);
-      showToast('Gagal mengunduh.');
+      showToast(t(lang, 'toastFailed'));
     }
   };
 
@@ -462,14 +561,16 @@ export default function App() {
     const results = [];
 
     for (const bId of Object.keys(bookCache)) {
+      if (!bId.startsWith(`${version}:`)) continue;
+      const realId = parseInt(bId.split(':')[1], 10);
       const book = bookCache[bId];
-      const meta = books.find((b) => b.id === parseInt(bId, 10));
-      for (const ch of Object.keys(book.chapters)) {
+      const meta = books.find((b) => b.id === realId);
+      for (const ch of Object.keys(book.chapters || {})) {
         for (const v of book.chapters[ch]) {
           if (v.text.toLowerCase().includes(query)) {
             results.push({
-              bookId: book.id,
-              bookName: meta ? meta.name : book.name,
+              bookId: realId,
+              bookName: getBookName(meta) || book.name,
               chapter: parseInt(ch, 10),
               verse: v.verse,
               text: v.text
@@ -487,15 +588,18 @@ export default function App() {
   const filteredBooks = books.filter((b) => {
     if (pickerTestament === 'PL' && b.testament !== 'PL') return false;
     if (pickerTestament === 'PB' && b.testament !== 'PB') return false;
-    if (pickerCategory !== 'Semua' && b.category !== pickerCategory) return false;
+    if (pickerCategory !== 'ALL' && getBookCategory(b) !== pickerCategory) return false;
     return true;
   });
 
-  const availableCategories = ['Semua', ...new Set(
+  const availableCategories = ['ALL', ...new Set(
     books
       .filter((b) => pickerTestament === 'ALL' || b.testament === pickerTestament)
-      .map((b) => b.category)
+      .map((b) => getBookCategory(b))
   )];
+
+  const currentBookDisplayName = getBookName(currentBookMeta);
+  const currentBookDisplayAbbr = getBookAbbr(currentBookMeta);
 
   return (
     <div className="app-layout">
@@ -518,8 +622,20 @@ export default function App() {
               <img src="/icon.svg" alt="Alkitab" width="28" height="28" />
             </div>
             <div className="brand-title">
-              Alkitab
-              <span className="shiny-badge">AYT</span>
+              {t(lang, 'appTitle')}
+              <button 
+                className="version-pill-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowVersionModal(true);
+                }}
+                title={t(lang, 'selectVersion')}
+              >
+                <span>{version.toUpperCase()}</span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
             </div>
           </div>
 
@@ -530,9 +646,9 @@ export default function App() {
                 setPickerBook(currentBookMeta);
                 setShowPicker(true);
               }}
-              title="Pilih Kitab & Pasal"
+              title={t(lang, 'selectPassage')}
             >
-              <span>{currentBookMeta ? `${currentBookMeta.name} ${currentChapter}` : 'Memuat...'}</span>
+              <span>{currentBookDisplayName ? `${currentBookDisplayName} ${currentChapter}` : t(lang, 'loadingScripture')}</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <polyline points="6 9 12 15 18 9"/>
               </svg>
@@ -540,24 +656,42 @@ export default function App() {
           </div>
 
           <div className="header-actions">
+            {/* Quick Language Toggle */}
+            <div className="lang-toggle-bar">
+              <button 
+                className={`lang-btn ${lang === 'id' ? 'active' : ''}`}
+                onClick={() => handleToggleLang('id')}
+                title="Bahasa Indonesia"
+              >
+                ID
+              </button>
+              <button 
+                className={`lang-btn ${lang === 'en' ? 'active' : ''}`}
+                onClick={() => handleToggleLang('en')}
+                title="English"
+              >
+                EN
+              </button>
+            </div>
+
             <button 
               className={`icon-btn ${showSearch ? 'active' : ''}`}
               onClick={() => setShowSearch(true)} 
-              title="Cari Ayat"
+              title={t(lang, 'search')}
             >
               <Icons.Search />
             </button>
             <button 
               className={`icon-btn ${showSavedModal ? 'active' : ''}`}
               onClick={() => setShowSavedModal(true)} 
-              title="Ayat Tersimpan & Sorotan"
+              title={t(lang, 'savedTitle')}
             >
               <Icons.BookmarkList />
             </button>
             <button 
               className={`icon-btn ${showAppearance ? 'active' : ''}`}
               onClick={() => setShowAppearance(true)} 
-              title="Tampilan & Huruf"
+              title={t(lang, 'appearanceTitle')}
             >
               <Icons.TextSettings />
             </button>
@@ -571,13 +705,18 @@ export default function App() {
           {loading ? (
             <div className="loading-spinner">
               <div className="spinner"></div>
-              <p>Membuka Kitab Suci...</p>
+              <p>{t(lang, 'loadingScripture')}</p>
             </div>
           ) : (
             <>
               <div className="chapter-header">
-                <h1 className="chapter-book-title">{currentBookMeta?.name}</h1>
-                <div className="chapter-subtitle">Pasal {currentChapter} • {currentBookMeta?.category}</div>
+                <h1 className="chapter-book-title">{currentBookDisplayName}</h1>
+                <div className="chapter-subtitle">
+                  {t(lang, 'chapterBadge', {
+                    chapter: currentChapter,
+                    category: getBookCategory(currentBookMeta)
+                  })} • <span style={{ fontWeight: 800, color: 'var(--accent)' }}>{version.toUpperCase()}</span>
+                </div>
               </div>
 
               <div className="verses-list">
@@ -585,7 +724,7 @@ export default function App() {
                   const key = `${currentBookId}:${currentChapter}:${verseObj.verse}`;
                   const isSelected = selectedVerse?.verse === verseObj.verse;
                   const isBookmarked = bookmarks.includes(key);
-                  const hlColor = highlights[key]; // yellow, green, blue, pink
+                  const hlColor = highlights[key];
 
                   return (
                     <React.Fragment key={verseObj.verse}>
@@ -612,7 +751,6 @@ export default function App() {
       {/* POP-UP ACTION BAR (Animos Spring Animation) */}
       {selectedVerse && (
         <div className="verse-actions-bar">
-          {/* Pastel Highlight Dots */}
           <div className="hl-palette">
             <button 
               className="hl-dot" 
@@ -644,11 +782,15 @@ export default function App() {
 
           <button className="verse-action-btn" onClick={() => handleCopyVerse(selectedVerse)}>
             <Icons.Copy />
-            <span>Salin</span>
+            <span>{t(lang, 'salin')}</span>
           </button>
           <button className="verse-action-btn" onClick={() => handleToggleBookmark(selectedVerse)}>
             <Icons.Bookmark filled={bookmarks.includes(`${currentBookId}:${currentChapter}:${selectedVerse.verse}`)} />
-            <span>Tandai</span>
+            <span>{t(lang, 'tandai')}</span>
+          </button>
+          <button className="verse-action-btn" onClick={() => handleOpenCompare(selectedVerse)}>
+            <Icons.Compare />
+            <span>{t(lang, 'bandingkan')}</span>
           </button>
           <button 
             className="verse-action-btn" 
@@ -656,7 +798,7 @@ export default function App() {
             onClick={() => setShowCardMaker(true)}
           >
             <Icons.ImageCard />
-            <span>Gambar</span>
+            <span>{t(lang, 'gambar')}</span>
           </button>
           <button className="icon-btn" onClick={() => setSelectedVerse(null)}>
             <Icons.Close />
@@ -664,16 +806,16 @@ export default function App() {
         </div>
       )}
 
-      {/* FLOATING DOCK (Arc UI / React Bits Dock Style) */}
+      {/* FLOATING DOCK */}
       <nav className="floating-dock">
         <button 
           className="dock-btn" 
           onClick={handlePrevChapter} 
           disabled={currentBookId === 1 && currentChapter === 1}
-          title="Pasal Sebelumnya"
+          title={t(lang, 'prevChapter')}
         >
           <Icons.ChevronLeft />
-          <span>Sebelumnya</span>
+          <span>{t(lang, 'prevChapter')}</span>
         </button>
 
         <div className="dock-divider" />
@@ -686,7 +828,7 @@ export default function App() {
             setShowPicker(true);
           }}
         >
-          {currentBookMeta?.abbr} {currentChapter}
+          {currentBookDisplayAbbr} {currentChapter} • {version.toUpperCase()}
         </div>
 
         <div className="dock-divider" />
@@ -695,33 +837,125 @@ export default function App() {
           className="dock-btn" 
           onClick={handleNextChapter} 
           disabled={currentBookId === 66 && currentBookMeta && currentChapter === currentBookMeta.chaptersCount}
-          title="Pasal Berikutnya"
+          title={t(lang, 'nextChapter')}
         >
-          <span>Berikutnya</span>
+          <span>{t(lang, 'nextChapter')}</span>
           <Icons.ChevronRight />
         </button>
       </nav>
+
+      {/* MODAL: BIBLE VERSION SELECTOR */}
+      {showVersionModal && (
+        <div className="modal-backdrop" onClick={() => setShowVersionModal(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">{t(lang, 'selectVersion')}</div>
+              <button className="modal-close-btn" onClick={() => setShowVersionModal(false)}>
+                <Icons.Close />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="version-options-grid">
+                {Object.values(BIBLE_VERSIONS).map((vItem) => {
+                  const isActive = version === vItem.id;
+                  return (
+                    <button
+                      key={vItem.id}
+                      className={`version-card-btn ${isActive ? 'active' : ''}`}
+                      onClick={() => handleSelectVersion(vItem.id)}
+                    >
+                      <div className="version-card-header">
+                        <div className="version-card-title">
+                          <span>{vItem.name}</span>
+                          <span className="version-lang-badge">{vItem.lang.toUpperCase()}</span>
+                        </div>
+                        <span className="version-card-badge">{vItem.badge}</span>
+                      </div>
+                      <div className="version-card-desc">{vItem.subtitle}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: VERSE COMPARISON ACROSS VERSIONS */}
+      {showCompareModal && selectedVerse && (
+        <div className="modal-backdrop" onClick={() => setShowCompareModal(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">
+                {currentBookDisplayName} {currentChapter}:{selectedVerse.verse}
+              </div>
+              <button className="modal-close-btn" onClick={() => setShowCompareModal(false)}>
+                <Icons.Close />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                {t(lang, 'compareHint')}
+              </p>
+
+              {comparing ? (
+                <div className="loading-spinner">
+                  <div className="spinner"></div>
+                  <p>{t(lang, 'loadingScripture')}</p>
+                </div>
+              ) : (
+                <div className="compare-list">
+                  {compareData.map((item) => (
+                    <div key={item.version} className="compare-item-card">
+                      <div className="compare-item-header">
+                        <div className="compare-item-version">
+                          <span>{item.versionObj.name}</span>
+                          <span className="version-lang-badge">{item.versionObj.lang.toUpperCase()}</span>
+                        </div>
+                        <button 
+                          className="verse-action-btn"
+                          style={{ padding: '0.25rem 0.6rem', fontSize: '0.74rem' }}
+                          onClick={() => {
+                            navigator.clipboard.writeText(`"${item.text}" — ${currentBookDisplayName} ${currentChapter}:${selectedVerse.verse} (${item.version.toUpperCase()})`);
+                            showToast(t(lang, 'toastCopied'));
+                          }}
+                        >
+                          <Icons.Copy />
+                          <span>{t(lang, 'salin')}</span>
+                        </button>
+                      </div>
+                      <div className="compare-item-text">
+                        "{item.text}"
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL: VERSE CARD GENERATOR */}
       {showCardMaker && selectedVerse && (
         <div className="modal-backdrop" onClick={() => setShowCardMaker(false)}>
           <div className="modal-card card-maker-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <div className="modal-title">Kartu Kutipan Ayat</div>
+              <div className="modal-title">{t(lang, 'cardMakerTitle')}</div>
               <button className="modal-close-btn" onClick={() => setShowCardMaker(false)}>
                 <Icons.Close />
               </button>
             </div>
 
             <div className="modal-body">
-              {/* Canvas Preview */}
               <div className="quote-canvas-preview">
                 <canvas ref={canvasRef} />
               </div>
 
-              {/* Theme Selector */}
               <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
-                Pilih Gaya Kartu
+                {t(lang, 'chooseCardStyle')}
               </div>
               <div className="card-themes-row">
                 <button 
@@ -754,15 +988,14 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Download / Share Actions */}
               <div className="card-maker-actions">
                 <button className="primary-action-btn" onClick={handleDownloadCard}>
                   <Icons.Download />
-                  <span>Unduh Gambar (PNG)</span>
+                  <span>{t(lang, 'downloadPng')}</span>
                 </button>
                 <button className="verse-action-btn" onClick={() => handleShareVerse(selectedVerse)}>
                   <Icons.Share />
-                  <span>Bagikan</span>
+                  <span>{t(lang, 'share')}</span>
                 </button>
               </div>
             </div>
@@ -775,7 +1008,7 @@ export default function App() {
         <div className="modal-backdrop" onClick={() => setShowSavedModal(false)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <div className="modal-title">Ayat Tersimpan & Sorotan</div>
+              <div className="modal-title">{t(lang, 'savedTitle')}</div>
               <button className="modal-close-btn" onClick={() => setShowSavedModal(false)}>
                 <Icons.Close />
               </button>
@@ -784,14 +1017,14 @@ export default function App() {
             <div className="modal-body">
               {bookmarks.length === 0 && Object.keys(highlights).length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
-                  Belum ada ayat yang ditandai atau disorot. Klik ayat saat membaca untuk menandai!
+                  {t(lang, 'emptySaved')}
                 </div>
               ) : (
                 <div>
-                  {/* Bookmarked verses */}
                   {bookmarks.map((key) => {
                     const [bId, ch, v] = key.split(':');
                     const bMeta = books.find((b) => b.id === parseInt(bId, 10));
+                    const bName = getBookName(bMeta);
                     return (
                       <div 
                         key={key} 
@@ -799,17 +1032,17 @@ export default function App() {
                         onClick={() => jumpToPassage(parseInt(bId, 10), parseInt(ch, 10), parseInt(v, 10))}
                       >
                         <div className="saved-item-ref">
-                          <span>{bMeta?.name} {ch}:{v}</span>
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Ditandai</span>
+                          <span>{bName} {ch}:{v}</span>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{t(lang, 'ditandai')}</span>
                         </div>
                       </div>
                     );
                   })}
 
-                  {/* Highlighted verses */}
                   {Object.entries(highlights).map(([key, color]) => {
                     const [bId, ch, v] = key.split(':');
                     const bMeta = books.find((b) => b.id === parseInt(bId, 10));
+                    const bName = getBookName(bMeta);
                     return (
                       <div 
                         key={key} 
@@ -818,8 +1051,10 @@ export default function App() {
                         onClick={() => jumpToPassage(parseInt(bId, 10), parseInt(ch, 10), parseInt(v, 10))}
                       >
                         <div className="saved-item-ref">
-                          <span>{bMeta?.name} {ch}:{v}</span>
-                          <span style={{ fontSize: '0.72rem', textTransform: 'capitalize', color: 'var(--accent)' }}>Sorot {color}</span>
+                          <span>{bName} {ch}:{v}</span>
+                          <span style={{ fontSize: '0.72rem', textTransform: 'capitalize', color: 'var(--accent)' }}>
+                            {t(lang, 'sorotWarna', { color })}
+                          </span>
                         </div>
                       </div>
                     );
@@ -843,10 +1078,10 @@ export default function App() {
                     onClick={() => setPickerBook(null)}
                   >
                     <Icons.ChevronLeft />
-                    <span>{pickerBook.name} (Pilih Pasal)</span>
+                    <span>{getBookName(pickerBook)} ({t(lang, 'chapterNum', { chapter: '' }).trim()})</span>
                   </button>
                 ) : (
-                  'Pilih Kitab & Pasal'
+                  t(lang, 'selectPassage')
                 )}
               </div>
               <button className="modal-close-btn" onClick={() => setShowPicker(false)}>
@@ -858,7 +1093,10 @@ export default function App() {
               {pickerBook ? (
                 <div>
                   <div style={{ marginBottom: '1rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                    Tersedia {pickerBook.chaptersCount} pasal di Kitab {pickerBook.name}:
+                    {t(lang, 'availableChapters', {
+                      count: pickerBook.chaptersCount,
+                      book: getBookName(pickerBook)
+                    })}
                   </div>
                   <div className="chapters-grid">
                     {Array.from({ length: pickerBook.chaptersCount }, (_, i) => i + 1).map((chNum) => (
@@ -877,21 +1115,21 @@ export default function App() {
                   <div className="testament-tabs">
                     <button 
                       className={`testament-tab ${pickerTestament === 'ALL' ? 'active' : ''}`}
-                      onClick={() => { setPickerTestament('ALL'); setPickerCategory('Semua'); }}
+                      onClick={() => { setPickerTestament('ALL'); setPickerCategory('ALL'); }}
                     >
-                      Semua (66)
+                      {t(lang, 'allTestament')}
                     </button>
                     <button 
                       className={`testament-tab ${pickerTestament === 'PL' ? 'active' : ''}`}
-                      onClick={() => { setPickerTestament('PL'); setPickerCategory('Semua'); }}
+                      onClick={() => { setPickerTestament('PL'); setPickerCategory('ALL'); }}
                     >
-                      Perjanjian Lama (39)
+                      {t(lang, 'otTestament')}
                     </button>
                     <button 
                       className={`testament-tab ${pickerTestament === 'PB' ? 'active' : ''}`}
-                      onClick={() => { setPickerTestament('PB'); setPickerCategory('Semua'); }}
+                      onClick={() => { setPickerTestament('PB'); setPickerCategory('ALL'); }}
                     >
-                      Perjanjian Baru (27)
+                      {t(lang, 'ntTestament')}
                     </button>
                   </div>
 
@@ -902,7 +1140,7 @@ export default function App() {
                         className={`category-chip ${pickerCategory === cat ? 'active' : ''}`}
                         onClick={() => setPickerCategory(cat)}
                       >
-                        {cat}
+                        {cat === 'ALL' ? t(lang, 'allCategories') : cat}
                       </button>
                     ))}
                   </div>
@@ -914,8 +1152,10 @@ export default function App() {
                         className={`book-card-btn ${currentBookId === book.id ? 'active' : ''}`}
                         onClick={() => setPickerBook(book)}
                       >
-                        <div className="book-name">{book.name}</div>
-                        <div className="book-meta">{book.chaptersCount} Pasal • {book.abbr}</div>
+                        <div className="book-name">{getBookName(book)}</div>
+                        <div className="book-meta">
+                          {book.chaptersCount} {t(lang, 'chapterNum', { chapter: '' }).trim()} • {getBookAbbr(book)}
+                        </div>
                       </button>
                     ))}
                   </div>
@@ -926,21 +1166,59 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL: APPEARANCE SETTINGS */}
+      {/* MODAL: APPEARANCE & SETTINGS */}
       {showAppearance && (
         <div className="modal-backdrop" onClick={() => setShowAppearance(false)}>
           <div className="modal-card settings-card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <div className="modal-title">Pengaturan Tampilan</div>
+              <div className="modal-title">{t(lang, 'appearanceTitle')}</div>
               <button className="modal-close-btn" onClick={() => setShowAppearance(false)}>
                 <Icons.Close />
               </button>
             </div>
 
             <div className="modal-body">
+              {/* Language Switcher */}
+              <div className="setting-group">
+                <label className="setting-label">{t(lang, 'interfaceLang')}</label>
+                <div className="font-family-toggle">
+                  <button 
+                    className={`font-family-btn ${lang === 'id' ? 'active' : ''}`}
+                    onClick={() => handleToggleLang('id')}
+                  >
+                    🇮🇩 Bahasa Indonesia
+                  </button>
+                  <button 
+                    className={`font-family-btn ${lang === 'en' ? 'active' : ''}`}
+                    onClick={() => handleToggleLang('en')}
+                  >
+                    🇬🇧 English
+                  </button>
+                </div>
+              </div>
+
+              {/* Version Switcher Shortcut */}
+              <div className="setting-group">
+                <label className="setting-label">{t(lang, 'selectVersion')}</label>
+                <button 
+                  className="version-card-btn active"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    setShowAppearance(false);
+                    setShowVersionModal(true);
+                  }}
+                >
+                  <div className="version-card-header">
+                    <span className="version-card-title">{BIBLE_VERSIONS[version]?.name}</span>
+                    <span className="version-card-badge">{t(lang, 'changeVersion')} ▾</span>
+                  </div>
+                  <div className="version-card-desc">{BIBLE_VERSIONS[version]?.subtitle}</div>
+                </button>
+              </div>
+
               {/* Theme Switcher */}
               <div className="setting-group">
-                <label className="setting-label">Tema Warna Baca</label>
+                <label className="setting-label">{t(lang, 'readingTheme')}</label>
                 <div className="theme-options-grid">
                   <button 
                     className={`theme-option-btn ${theme === 'sepia' ? 'active' : ''}`}
@@ -948,7 +1226,7 @@ export default function App() {
                     style={{ backgroundColor: '#FAF6ED', color: '#2C241D' }}
                   >
                     <div className="theme-preview-box" style={{ backgroundColor: '#FAF6ED' }} />
-                    <span>Sepia</span>
+                    <span>{t(lang, 'themeSepia')}</span>
                   </button>
                   <button 
                     className={`theme-option-btn ${theme === 'light' ? 'active' : ''}`}
@@ -956,7 +1234,7 @@ export default function App() {
                     style={{ backgroundColor: '#FFFFFF', color: '#0F172A' }}
                   >
                     <div className="theme-preview-box" style={{ backgroundColor: '#FFFFFF' }} />
-                    <span>Terang</span>
+                    <span>{t(lang, 'themeLight')}</span>
                   </button>
                   <button 
                     className={`theme-option-btn ${theme === 'dark' ? 'active' : ''}`}
@@ -964,14 +1242,14 @@ export default function App() {
                     style={{ backgroundColor: '#0A0C10', color: '#F1F5F9' }}
                   >
                     <div className="theme-preview-box" style={{ backgroundColor: '#0A0C10' }} />
-                    <span>Gelap</span>
+                    <span>{t(lang, 'themeDark')}</span>
                   </button>
                 </div>
               </div>
 
               {/* Font Size */}
               <div className="setting-group">
-                <label className="setting-label">Ukuran Huruf ({fontSize}px)</label>
+                <label className="setting-label">{t(lang, 'fontSize', { size: fontSize })}</label>
                 <div className="font-size-control">
                   <button 
                     className="font-size-btn"
@@ -998,46 +1276,46 @@ export default function App() {
 
               {/* Font Family */}
               <div className="setting-group">
-                <label className="setting-label">Gaya Huruf</label>
+                <label className="setting-label">{t(lang, 'fontFamily')}</label>
                 <div className="font-family-toggle">
                   <button 
                     className={`font-family-btn ${fontFamily === 'serif' ? 'active' : ''}`}
                     style={{ fontFamily: 'var(--font-serif)' }}
                     onClick={() => setFontFamily('serif')}
                   >
-                    Serif (Literata)
+                    {t(lang, 'fontSerif')}
                   </button>
                   <button 
                     className={`font-family-btn ${fontFamily === 'sans' ? 'active' : ''}`}
                     style={{ fontFamily: 'var(--font-sans)' }}
                     onClick={() => setFontFamily('sans')}
                   >
-                    Sans-serif (Modern)
+                    {t(lang, 'fontSans')}
                   </button>
                 </div>
               </div>
 
               {/* Spacing */}
               <div className="setting-group">
-                <label className="setting-label">Jarak Baris (Spasi)</label>
+                <label className="setting-label">{t(lang, 'lineSpacing')}</label>
                 <div className="font-family-toggle">
                   <button 
                     className={`font-family-btn ${lineHeight === '1.6' ? 'active' : ''}`}
                     onClick={() => setLineHeight('1.6')}
                   >
-                    Rapat
+                    {t(lang, 'spacingTight')}
                   </button>
                   <button 
                     className={`font-family-btn ${lineHeight === '1.85' ? 'active' : ''}`}
                     onClick={() => setLineHeight('1.85')}
                   >
-                    Nyaman
+                    {t(lang, 'spacingComfort')}
                   </button>
                   <button 
                     className={`font-family-btn ${lineHeight === '2.1' ? 'active' : ''}`}
                     onClick={() => setLineHeight('2.1')}
                   >
-                    Longgar
+                    {t(lang, 'spacingLoose')}
                   </button>
                 </div>
               </div>
@@ -1047,10 +1325,12 @@ export default function App() {
                 <div className="sync-info">
                   <div className="sync-title">
                     <Icons.CloudCheck />
-                    <span>Mode Offline Penuh</span>
+                    <span>{t(lang, 'offlineTitle')} ({version.toUpperCase()})</span>
                   </div>
                   <div className="sync-desc">
-                    {offlineStatus ? 'Semua 66 Kitab sudah tersimpan di HP' : 'Unduh semua 66 Kitab (~5 MB) agar siap tanpa internet'}
+                    {offlineStatus 
+                      ? t(lang, 'offlineSynced', { version: version.toUpperCase() })
+                      : t(lang, 'offlineUnsynced', { version: version.toUpperCase() })}
                   </div>
                 </div>
                 <button 
@@ -1058,7 +1338,7 @@ export default function App() {
                   onClick={handleSyncAllOffline}
                   disabled={syncingOffline || offlineStatus}
                 >
-                  {syncingOffline ? 'Mengunduh...' : offlineStatus ? 'Tersimpan' : 'Unduh Semua'}
+                  {syncingOffline ? t(lang, 'downloading') : offlineStatus ? t(lang, 'downloaded') : t(lang, 'downloadAll')}
                 </button>
               </div>
             </div>
@@ -1071,7 +1351,7 @@ export default function App() {
         <div className="modal-backdrop" onClick={() => setShowSearch(false)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <div className="modal-title">Cari Ayat</div>
+              <div className="modal-title">{t(lang, 'searchTitle')}</div>
               <button className="modal-close-btn" onClick={() => setShowSearch(false)}>
                 <Icons.Close />
               </button>
@@ -1083,7 +1363,7 @@ export default function App() {
                 <input 
                   type="text" 
                   className="search-input"
-                  placeholder="Ketik kata (misal: kasih, terang, damai)..."
+                  placeholder={t(lang, 'searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   autoFocus
@@ -1093,14 +1373,14 @@ export default function App() {
               {searching && (
                 <div className="loading-spinner">
                   <div className="spinner"></div>
-                  <p>Mencari ayat...</p>
+                  <p>{t(lang, 'searching')}</p>
                 </div>
               )}
 
               {searchResults.length > 0 && (
                 <div className="search-results-list">
                   <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
-                    Ditemukan {searchResults.length} hasil:
+                    {t(lang, 'searchResultsCount', { count: searchResults.length })}
                   </div>
                   {searchResults.map((res, idx) => (
                     <div 
@@ -1121,7 +1401,7 @@ export default function App() {
 
               {!searching && searchResults.length === 0 && searchQuery && (
                 <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-muted)' }}>
-                  Tidak ada ayat yang cocok di kitab yang sudah dimuat. Coba kata kunci lain.
+                  {t(lang, 'noResults')}
                 </div>
               )}
             </div>
