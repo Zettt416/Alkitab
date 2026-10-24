@@ -33,6 +33,11 @@ const Icons = {
       <polyline points="9 18 15 12 9 6"/>
     </svg>
   ),
+  ChevronDown: () => (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 12 15 18 9"/>
+    </svg>
+  ),
   Close: () => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="18" y1="6" x2="6" y2="18"/>
@@ -636,42 +641,41 @@ export default function App() {
       {/* TOP HEADER */}
       <header className="app-header">
         <div className="header-container">
-          <div className="header-brand" onClick={() => jumpToPassage(43, 1)}>
+          <div className="header-brand" onClick={() => jumpToPassage(43, 1)} title={t(lang, 'appTitle')}>
             <div className="brand-icon">
               <img src="/icon.svg" alt="Alkitab" width="28" height="28" />
             </div>
-            <div className="brand-title">
-              {t(lang, 'appTitle')}
-              <button 
-                className="version-pill-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowVersionModal(true);
-                }}
-                title={t(lang, 'selectVersion')}
-              >
-                <span>{version.toUpperCase()}</span>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8">
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
-              </button>
-            </div>
+            <span className="brand-title-text">{t(lang, 'appTitle')}</span>
           </div>
 
           <div className="header-center">
-            <button 
-              className="passage-picker-btn"
-              onClick={() => {
-                setPickerBook(currentBookMeta);
-                setShowPicker(true);
-              }}
-              title={t(lang, 'selectPassage')}
-            >
-              <span>{currentBookDisplayName ? `${currentBookDisplayName} ${currentChapter}` : t(lang, 'loadingScripture')}</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <polyline points="6 9 12 15 18 9"/>
-              </svg>
-            </button>
+            <div className="header-nav-pill">
+              <button 
+                className="nav-pill-btn nav-passage-btn"
+                onClick={() => {
+                  setPickerBook(currentBookMeta);
+                  setShowPicker(true);
+                }}
+                title={t(lang, 'selectPassage')}
+              >
+                <Icons.Book />
+                <span className="nav-passage-name">
+                  {currentBookDisplayName ? `${currentBookDisplayName} ${currentChapter}` : t(lang, 'loadingScripture')}
+                </span>
+                <Icons.ChevronDown />
+              </button>
+
+              <div className="nav-pill-sep" />
+
+              <button 
+                className="nav-pill-btn nav-version-btn"
+                onClick={() => setShowVersionModal(true)}
+                title={t(lang, 'selectVersion')}
+              >
+                <span className="nav-version-tag">{version.toUpperCase()}</span>
+                <Icons.ChevronDown />
+              </button>
+            </div>
           </div>
 
           <div className="header-actions">
