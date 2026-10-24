@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// SVG Icons for clean, crisp rendering without heavy icon libraries
+// Lightweight SVG Icons (Zero dependencies - ponytail)
 const Icons = {
   Book: () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -9,13 +9,18 @@ const Icons = {
     </svg>
   ),
   Search: () => (
-    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="11" cy="11" r="8"/>
       <line x1="21" y1="21" x2="16.65" y2="16.65"/>
     </svg>
   ),
   TextSettings: () => (
     <span style={{ fontWeight: 800, fontSize: '1.05rem', letterSpacing: '-0.05em' }}>Aa</span>
+  ),
+  BookmarkList: () => (
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+    </svg>
   ),
   ChevronLeft: () => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -28,7 +33,7 @@ const Icons = {
     </svg>
   ),
   Close: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="18" y1="6" x2="6" y2="18"/>
       <line x1="6" y1="6" x2="18" y2="18"/>
     </svg>
@@ -37,6 +42,20 @@ const Icons = {
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+    </svg>
+  ),
+  ImageCard: () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+      <circle cx="8.5" cy="8.5" r="1.5"/>
+      <polyline points="21 15 16 10 5 21"/>
+    </svg>
+  ),
+  Download: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="7 10 12 15 17 10"/>
+      <line x1="12" y1="15" x2="12" y2="3"/>
     </svg>
   ),
   Bookmark: ({ filled }) => (
@@ -54,7 +73,7 @@ const Icons = {
     </svg>
   ),
   CloudCheck: () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M20 16.2A4.5 4.5 0 0 0 17.5 8h-1.8A7 7 0 1 0 4 14.9"/>
       <polyline points="9 15 12 18 17 13"/>
     </svg>
@@ -62,27 +81,39 @@ const Icons = {
 };
 
 export default function App() {
-  // Books metadata & navigation state
+  // Navigation & Books State
   const [books, setBooks] = useState([]);
   const [currentBookId, setCurrentBookId] = useState(() => {
-    return parseInt(localStorage.getItem('alkitab_book_id') || '43', 10); // Default: Yohanes
+    return parseInt(localStorage.getItem('alkitab_book_id') || '43', 10); // Yohanes
   });
   const [currentChapter, setCurrentChapter] = useState(() => {
     return parseInt(localStorage.getItem('alkitab_chapter') || '1', 10);
   });
-  
-  // Book full content cache: { [bookId]: bookData }
   const [bookCache, setBookCache] = useState({});
   const [loading, setLoading] = useState(true);
 
-  // Appearance preferences
+  // Appearance
   const [theme, setTheme] = useState(() => localStorage.getItem('alkitab_theme') || 'sepia');
   const [fontSize, setFontSize] = useState(() => parseInt(localStorage.getItem('alkitab_font_size') || '19', 10));
   const [fontFamily, setFontFamily] = useState(() => localStorage.getItem('alkitab_font_family') || 'serif');
   const [lineHeight, setLineHeight] = useState(() => localStorage.getItem('alkitab_line_height') || '1.85');
 
-  // Interactive states
+  // Reading progress scroll state
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  // Interactivity
   const [selectedVerse, setSelectedVerse] = useState(null);
+  
+  // Highlights: { [passageKey]: 'yellow' | 'green' | 'blue' | 'pink' }
+  const [highlights, setHighlights] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('alkitab_highlights') || '{}');
+    } catch {
+      return {};
+    }
+  });
+
+  // Bookmarks: Array of passage keys
   const [bookmarks, setBookmarks] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('alkitab_bookmarks') || '[]');
@@ -91,7 +122,7 @@ export default function App() {
     }
   });
 
-  // Modals & Drawers
+  // Modals & Panels
   const [showPicker, setShowPicker] = useState(false);
   const [pickerTestament, setPickerTestament] = useState('ALL');
   const [pickerCategory, setPickerCategory] = useState('Semua');
@@ -103,24 +134,44 @@ export default function App() {
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
 
-  // Offline Sync state
+  const [showSavedModal, setShowSavedModal] = useState(false);
+  const [showCardMaker, setShowCardMaker] = useState(false);
+  const [cardTheme, setCardTheme] = useState('amber'); // amber, midnight, parchment, emerald
+  const canvasRef = useRef(null);
+
+  // Offline Sync & Toast
   const [offlineStatus, setOfflineStatus] = useState(() => localStorage.getItem('alkitab_offline_synced') === 'true');
   const [syncingOffline, setSyncingOffline] = useState(false);
   const [toast, setToast] = useState(null);
 
-  // Apply theme to document
+  // Track scroll progress for reading bar
+  useEffect(() => {
+    const handleScroll = () => {
+      const totalScroll = document.documentElement.scrollHeight - window.innerHeight;
+      if (totalScroll <= 0) {
+        setScrollProgress(0);
+        return;
+      }
+      const currentScroll = window.scrollY;
+      const progress = Math.min(100, Math.max(0, (currentScroll / totalScroll) * 100));
+      setScrollProgress(progress);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Theme application
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('alkitab_theme', theme);
-    
-    // Update theme-color meta tag for mobile status bar
     const metaThemeColor = document.getElementById('theme-color-meta');
     if (metaThemeColor) {
-      metaThemeColor.setAttribute('content', theme === 'dark' ? '#0E1014' : theme === 'sepia' ? '#FAF6ED' : '#FFFFFF');
+      metaThemeColor.setAttribute('content', theme === 'dark' ? '#0A0C10' : theme === 'sepia' ? '#FAF6ED' : '#FFFFFF');
     }
   }, [theme]);
 
-  // Apply typography styles to CSS root
+  // Typography application
   useEffect(() => {
     document.documentElement.style.setProperty('--reader-font-size', `${fontSize}px`);
     document.documentElement.style.setProperty('--reader-line-height', lineHeight);
@@ -133,31 +184,26 @@ export default function App() {
     localStorage.setItem('alkitab_line_height', lineHeight);
   }, [fontSize, fontFamily, lineHeight]);
 
-  // Save navigation state
+  // Save location
   useEffect(() => {
     localStorage.setItem('alkitab_book_id', currentBookId);
     localStorage.setItem('alkitab_chapter', currentChapter);
   }, [currentBookId, currentChapter]);
 
-  // Load books metadata on mount
+  // Load books metadata
   useEffect(() => {
     fetch('/data/books.json')
       .then((res) => res.json())
-      .then((data) => {
-        setBooks(data);
-      })
-      .catch((err) => {
-        console.error('Failed to load books metadata:', err);
-      });
+      .then((data) => setBooks(data))
+      .catch((err) => console.error(err));
   }, []);
 
-  // Load current book data when currentBookId changes
+  // Load current book data
   useEffect(() => {
     if (bookCache[currentBookId]) {
       setLoading(false);
       return;
     }
-
     setLoading(true);
     fetch(`/data/books/${currentBookId}.json`)
       .then((res) => res.json())
@@ -166,7 +212,7 @@ export default function App() {
         setLoading(false);
       })
       .catch((err) => {
-        console.error('Failed to load book data:', err);
+        console.error(err);
         setLoading(false);
       });
   }, [currentBookId, bookCache]);
@@ -175,25 +221,21 @@ export default function App() {
   const currentBookData = bookCache[currentBookId];
   const chapterVerses = currentBookData?.chapters?.[currentChapter.toString()] || [];
 
-  // Show toast notification helper
   const showToast = (message) => {
     setToast(message);
-    setTimeout(() => {
-      setToast(null);
-    }, 2400);
+    setTimeout(() => setToast(null), 2500);
   };
 
-  // Chapter navigation handlers
   const handlePrevChapter = () => {
     setSelectedVerse(null);
     if (currentChapter > 1) {
       setCurrentChapter((prev) => prev - 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (currentBookId > 1) {
-      const prevBookMeta = books.find((b) => b.id === currentBookId - 1);
-      if (prevBookMeta) {
-        setCurrentBookId(prevBookMeta.id);
-        setCurrentChapter(prevBookMeta.chaptersCount);
+      const prevMeta = books.find((b) => b.id === currentBookId - 1);
+      if (prevMeta) {
+        setCurrentBookId(prevMeta.id);
+        setCurrentChapter(prevMeta.chaptersCount);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     }
@@ -211,12 +253,12 @@ export default function App() {
     }
   };
 
-  // Jump to specific passage
   const jumpToPassage = (bookId, chapter, verse = null) => {
     setCurrentBookId(bookId);
     setCurrentChapter(chapter);
     setShowPicker(false);
     setShowSearch(false);
+    setShowSavedModal(false);
     setSelectedVerse(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -231,12 +273,40 @@ export default function App() {
     }
   };
 
-  // Verse action handlers
+  // Verse Highlight Toggle
+  const handleSetHighlight = (verseObj, color) => {
+    const key = `${currentBookId}:${currentChapter}:${verseObj.verse}`;
+    const updated = { ...highlights };
+    if (updated[key] === color) {
+      delete updated[key];
+      showToast('Sorotan warna dihapus');
+    } else {
+      updated[key] = color;
+      showToast('Ayat berhasil disorot');
+    }
+    setHighlights(updated);
+    localStorage.setItem('alkitab_highlights', JSON.stringify(updated));
+  };
+
+  const handleToggleBookmark = (verseObj) => {
+    const key = `${currentBookId}:${currentChapter}:${verseObj.verse}`;
+    let updated;
+    if (bookmarks.includes(key)) {
+      updated = bookmarks.filter((k) => k !== key);
+      showToast('Tanda ayat dihapus');
+    } else {
+      updated = [...bookmarks, key];
+      showToast('Ayat ditambahkan ke daftar simpan');
+    }
+    setBookmarks(updated);
+    localStorage.setItem('alkitab_bookmarks', JSON.stringify(updated));
+  };
+
   const handleCopyVerse = (verseObj) => {
     if (!currentBookMeta) return;
     const citation = `"${verseObj.text}"\n— ${currentBookMeta.name} ${currentChapter}:${verseObj.verse} (AYT)`;
     navigator.clipboard.writeText(citation).then(() => {
-      showToast('Ayat berhasil disalin ke papan klip');
+      showToast('Ayat berhasil disalin');
     });
   };
 
@@ -253,56 +323,144 @@ export default function App() {
     }
   };
 
-  const handleToggleBookmark = (verseObj) => {
-    const key = `${currentBookId}:${currentChapter}:${verseObj.verse}`;
-    let updated;
-    if (bookmarks.includes(key)) {
-      updated = bookmarks.filter((k) => k !== key);
-      showToast('Tanda ayat dihapus');
-    } else {
-      updated = [...bookmarks, key];
-      showToast('Ayat ditambahkan ke pembatas buku');
+  // DRAW VERSE CARD TO CANVAS (React Bits / Planes aesthetic)
+  const drawVerseCard = () => {
+    if (!canvasRef.current || !selectedVerse || !currentBookMeta) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const width = 1080;
+    const height = 1080;
+    canvas.width = width;
+    canvas.height = height;
+
+    // Background Gradient based on Card Theme
+    let bgGrad = ctx.createLinearGradient(0, 0, width, height);
+    let textColor = '#FFFFFF';
+    let quoteColor = 'rgba(255, 255, 255, 0.2)';
+    let refColor = '#FBBF24';
+
+    if (cardTheme === 'amber') {
+      bgGrad.addColorStop(0, '#78350F');
+      bgGrad.addColorStop(0.5, '#451A03');
+      bgGrad.addColorStop(1, '#1C1917');
+      refColor = '#FDE68A';
+    } else if (cardTheme === 'midnight') {
+      bgGrad.addColorStop(0, '#0F172A');
+      bgGrad.addColorStop(0.5, '#020617');
+      bgGrad.addColorStop(1, '#000000');
+      refColor = '#38BDF8';
+    } else if (cardTheme === 'emerald') {
+      bgGrad.addColorStop(0, '#064E3B');
+      bgGrad.addColorStop(0.6, '#022C22');
+      bgGrad.addColorStop(1, '#0A0C10');
+      refColor = '#6EE7B7';
+    } else if (cardTheme === 'parchment') {
+      bgGrad.addColorStop(0, '#FAF6ED');
+      bgGrad.addColorStop(1, '#EFE6D1');
+      textColor = '#2C241D';
+      quoteColor = 'rgba(180, 83, 9, 0.15)';
+      refColor = '#B45309';
     }
-    setBookmarks(updated);
-    localStorage.setItem('alkitab_bookmarks', JSON.stringify(updated));
+
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, width, height);
+
+    // Decorative Borders
+    ctx.strokeStyle = cardTheme === 'parchment' ? 'rgba(180, 83, 9, 0.25)' : 'rgba(255, 255, 255, 0.15)';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(50, 50, width - 100, height - 100);
+
+    // Watermark / Giant Quote Mark
+    ctx.font = 'bold 220px Georgia, serif';
+    ctx.fillStyle = quoteColor;
+    ctx.fillText('“', 100, 240);
+
+    // Verse Text Word Wrap
+    ctx.font = '500 48px "Literata", Georgia, serif';
+    ctx.fillStyle = textColor;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const words = selectedVerse.text.split(' ');
+    const lines = [];
+    let currentLine = '';
+    const maxWidth = 860;
+
+    for (let n = 0; n < words.length; n++) {
+      const testLine = currentLine + words[n] + ' ';
+      const metrics = ctx.measureText(testLine);
+      if (metrics.width > maxWidth && n > 0) {
+        lines.push(currentLine.trim());
+        currentLine = words[n] + ' ';
+      } else {
+        currentLine = testLine;
+      }
+    }
+    lines.push(currentLine.trim());
+
+    const lineHeightPx = 72;
+    const startY = (height / 2) - ((lines.length * lineHeightPx) / 2) + 20;
+
+    lines.forEach((line, index) => {
+      ctx.fillText(line, width / 2, startY + (index * lineHeightPx));
+    });
+
+    // Reference & Badge
+    ctx.font = 'bold 36px "Plus Jakarta Sans", sans-serif';
+    ctx.fillStyle = refColor;
+    ctx.fillText(`— ${currentBookMeta.name} ${currentChapter}:${selectedVerse.verse} (AYT) —`, width / 2, startY + (lines.length * lineHeightPx) + 80);
+
+    // Footer Watermark
+    ctx.font = '600 24px "Plus Jakarta Sans", sans-serif';
+    ctx.fillStyle = cardTheme === 'parchment' ? 'rgba(44, 36, 29, 0.4)' : 'rgba(255, 255, 255, 0.4)';
+    ctx.fillText('Alkitab Digital Indonesia • alkitab-pi.vercel.app', width / 2, height - 90);
   };
 
-  // Offline Sync: pre-fetch and store all 66 books in browser cache
+  useEffect(() => {
+    if (showCardMaker) {
+      setTimeout(drawVerseCard, 50);
+    }
+  }, [showCardMaker, cardTheme, selectedVerse]);
+
+  // Download Card as PNG
+  const handleDownloadCard = () => {
+    if (!canvasRef.current) return;
+    const link = document.createElement('a');
+    link.download = `Alkitab-${currentBookMeta?.name}-${currentChapter}-${selectedVerse?.verse}.png`;
+    link.href = canvasRef.current.toDataURL('image/png');
+    link.click();
+    showToast('Gambar berhasil diunduh!');
+  };
+
+  // Full Offline Precache
   const handleSyncAllOffline = async () => {
     setSyncingOffline(true);
-    showToast('Sedang mengunduh seluruh 66 Kitab untuk mode offline...');
-
+    showToast('Sedang mengunduh 66 Kitab ke memori HP...');
     try {
       if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({ type: 'CACHE_ALL_BOOKS' });
       }
-
-      // Also gently pre-fetch in background
       for (let i = 1; i <= 66; i++) {
         await fetch(`/data/books/${i}.json`);
       }
-
       setOfflineStatus(true);
       localStorage.setItem('alkitab_offline_synced', 'true');
       setSyncingOffline(false);
-      showToast('Semua Kitab berhasil disimpan! Siap dipakai 100% offline.');
-    } catch (e) {
-      console.error(e);
+      showToast('100% Seluruh Kitab berhasil disimpan offline!');
+    } catch {
       setSyncingOffline(false);
-      showToast('Gagal mengunduh semua kitab.');
+      showToast('Gagal mengunduh.');
     }
   };
 
-  // Real-time search handler
+  // Search Verses
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
-
     setSearching(true);
     const query = searchQuery.trim().toLowerCase();
     const results = [];
 
-    // Search inside loaded books and current book first
     for (const bId of Object.keys(bookCache)) {
       const book = bookCache[bId];
       const meta = books.find((b) => b.id === parseInt(bId, 10));
@@ -322,12 +480,10 @@ export default function App() {
         if (results.length >= 40) break;
       }
     }
-
     setSearchResults(results);
     setSearching(false);
   };
 
-  // Filtered books in picker
   const filteredBooks = books.filter((b) => {
     if (pickerTestament === 'PL' && b.testament !== 'PL') return false;
     if (pickerTestament === 'PB' && b.testament !== 'PB') return false;
@@ -335,7 +491,6 @@ export default function App() {
     return true;
   });
 
-  // Extract unique categories for active testament
   const availableCategories = ['Semua', ...new Set(
     books
       .filter((b) => pickerTestament === 'ALL' || b.testament === pickerTestament)
@@ -344,6 +499,9 @@ export default function App() {
 
   return (
     <div className="app-layout">
+      {/* Scroll Progress Bar (Top) */}
+      <div className="reading-progress-bar" style={{ width: `${scrollProgress}%` }} />
+
       {/* Toast Notification */}
       {toast && (
         <div className="toast-box">
@@ -361,7 +519,7 @@ export default function App() {
             </div>
             <div className="brand-title">
               Alkitab
-              <span className="brand-badge">AYT</span>
+              <span className="shiny-badge">AYT</span>
             </div>
           </div>
 
@@ -390,6 +548,13 @@ export default function App() {
               <Icons.Search />
             </button>
             <button 
+              className={`icon-btn ${showSavedModal ? 'active' : ''}`}
+              onClick={() => setShowSavedModal(true)} 
+              title="Ayat Tersimpan & Sorotan"
+            >
+              <Icons.BookmarkList />
+            </button>
+            <button 
               className={`icon-btn ${showAppearance ? 'active' : ''}`}
               onClick={() => setShowAppearance(true)} 
               title="Tampilan & Huruf"
@@ -400,7 +565,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* MAIN READER AREA */}
+      {/* MAIN READER */}
       <main className="reader-main">
         <div className="reader-content">
           {loading ? (
@@ -412,13 +577,15 @@ export default function App() {
             <>
               <div className="chapter-header">
                 <h1 className="chapter-book-title">{currentBookMeta?.name}</h1>
-                <div className="chapter-subtitle">Pasal {currentChapter} ({currentBookMeta?.category})</div>
+                <div className="chapter-subtitle">Pasal {currentChapter} • {currentBookMeta?.category}</div>
               </div>
 
               <div className="verses-list">
                 {chapterVerses.map((verseObj) => {
+                  const key = `${currentBookId}:${currentChapter}:${verseObj.verse}`;
                   const isSelected = selectedVerse?.verse === verseObj.verse;
-                  const isBookmarked = bookmarks.includes(`${currentBookId}:${currentChapter}:${verseObj.verse}`);
+                  const isBookmarked = bookmarks.includes(key);
+                  const hlColor = highlights[key]; // yellow, green, blue, pink
 
                   return (
                     <React.Fragment key={verseObj.verse}>
@@ -427,7 +594,7 @@ export default function App() {
                       )}
                       <span 
                         id={`verse-${verseObj.verse}`}
-                        className={`verse-item ${isSelected ? 'selected' : ''} ${isBookmarked ? 'bookmarked' : ''}`}
+                        className={`verse-item ${isSelected ? 'selected' : ''} ${isBookmarked ? 'bookmarked' : ''} ${hlColor ? `hl-${hlColor}` : ''}`}
                         onClick={() => setSelectedVerse(isSelected ? null : verseObj)}
                       >
                         <sup className="verse-num">{verseObj.verse}</sup>
@@ -442,9 +609,39 @@ export default function App() {
         </div>
       </main>
 
-      {/* SELECTED VERSE ACTIONS BAR */}
+      {/* POP-UP ACTION BAR (Animos Spring Animation) */}
       {selectedVerse && (
         <div className="verse-actions-bar">
+          {/* Pastel Highlight Dots */}
+          <div className="hl-palette">
+            <button 
+              className="hl-dot" 
+              style={{ backgroundColor: '#FEF08A' }} 
+              onClick={() => handleSetHighlight(selectedVerse, 'yellow')}
+              title="Sorot Emas"
+            />
+            <button 
+              className="hl-dot" 
+              style={{ backgroundColor: '#BBF7D0' }} 
+              onClick={() => handleSetHighlight(selectedVerse, 'green')}
+              title="Sorot Hijau"
+            />
+            <button 
+              className="hl-dot" 
+              style={{ backgroundColor: '#BAE6FD' }} 
+              onClick={() => handleSetHighlight(selectedVerse, 'blue')}
+              title="Sorot Biru"
+            />
+            <button 
+              className="hl-dot" 
+              style={{ backgroundColor: '#FBCFE8' }} 
+              onClick={() => handleSetHighlight(selectedVerse, 'pink')}
+              title="Sorot Merah Muda"
+            />
+          </div>
+
+          <div style={{ width: 1, height: 20, backgroundColor: 'var(--border-subtle)' }} />
+
           <button className="verse-action-btn" onClick={() => handleCopyVerse(selectedVerse)}>
             <Icons.Copy />
             <span>Salin</span>
@@ -453,20 +650,24 @@ export default function App() {
             <Icons.Bookmark filled={bookmarks.includes(`${currentBookId}:${currentChapter}:${selectedVerse.verse}`)} />
             <span>Tandai</span>
           </button>
-          <button className="verse-action-btn" onClick={() => handleShareVerse(selectedVerse)}>
-            <Icons.Share />
-            <span>Bagikan</span>
+          <button 
+            className="verse-action-btn" 
+            style={{ backgroundColor: 'var(--accent)', color: 'var(--text-inverse)' }}
+            onClick={() => setShowCardMaker(true)}
+          >
+            <Icons.ImageCard />
+            <span>Gambar</span>
           </button>
-          <button className="icon-btn" onClick={() => setSelectedVerse(null)} title="Tutup">
+          <button className="icon-btn" onClick={() => setSelectedVerse(null)}>
             <Icons.Close />
           </button>
         </div>
       )}
 
-      {/* FLOATING NAVIGATION PILL */}
-      <nav className="floating-nav">
+      {/* FLOATING DOCK (Arc UI / React Bits Dock Style) */}
+      <nav className="floating-dock">
         <button 
-          className="nav-arrow-btn" 
+          className="dock-btn" 
           onClick={handlePrevChapter} 
           disabled={currentBookId === 1 && currentChapter === 1}
           title="Pasal Sebelumnya"
@@ -475,10 +676,10 @@ export default function App() {
           <span>Sebelumnya</span>
         </button>
 
-        <div className="nav-divider"></div>
+        <div className="dock-divider" />
 
         <div 
-          className="nav-chapter-indicator" 
+          className="dock-indicator" 
           style={{ cursor: 'pointer' }}
           onClick={() => {
             setPickerBook(currentBookMeta);
@@ -488,10 +689,10 @@ export default function App() {
           {currentBookMeta?.abbr} {currentChapter}
         </div>
 
-        <div className="nav-divider"></div>
+        <div className="dock-divider" />
 
         <button 
-          className="nav-arrow-btn" 
+          className="dock-btn" 
           onClick={handleNextChapter} 
           disabled={currentBookId === 66 && currentBookMeta && currentChapter === currentBookMeta.chaptersCount}
           title="Pasal Berikutnya"
@@ -500,6 +701,135 @@ export default function App() {
           <Icons.ChevronRight />
         </button>
       </nav>
+
+      {/* MODAL: VERSE CARD GENERATOR */}
+      {showCardMaker && selectedVerse && (
+        <div className="modal-backdrop" onClick={() => setShowCardMaker(false)}>
+          <div className="modal-card card-maker-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">Kartu Kutipan Ayat</div>
+              <button className="modal-close-btn" onClick={() => setShowCardMaker(false)}>
+                <Icons.Close />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {/* Canvas Preview */}
+              <div className="quote-canvas-preview">
+                <canvas ref={canvasRef} />
+              </div>
+
+              {/* Theme Selector */}
+              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+                Pilih Gaya Kartu
+              </div>
+              <div className="card-themes-row">
+                <button 
+                  className={`card-theme-btn ${cardTheme === 'amber' ? 'active' : ''}`}
+                  style={{ background: 'linear-gradient(135deg, #78350F, #1C1917)' }}
+                  onClick={() => setCardTheme('amber')}
+                >
+                  Amber Gold
+                </button>
+                <button 
+                  className={`card-theme-btn ${cardTheme === 'midnight' ? 'active' : ''}`}
+                  style={{ background: 'linear-gradient(135deg, #0F172A, #000000)' }}
+                  onClick={() => setCardTheme('midnight')}
+                >
+                  Midnight
+                </button>
+                <button 
+                  className={`card-theme-btn ${cardTheme === 'emerald' ? 'active' : ''}`}
+                  style={{ background: 'linear-gradient(135deg, #064E3B, #0A0C10)' }}
+                  onClick={() => setCardTheme('emerald')}
+                >
+                  Emerald
+                </button>
+                <button 
+                  className={`card-theme-btn ${cardTheme === 'parchment' ? 'active' : ''}`}
+                  style={{ background: '#FAF6ED', color: '#2C241D', border: '1px solid #D6C8A8' }}
+                  onClick={() => setCardTheme('parchment')}
+                >
+                  Parchment
+                </button>
+              </div>
+
+              {/* Download / Share Actions */}
+              <div className="card-maker-actions">
+                <button className="primary-action-btn" onClick={handleDownloadCard}>
+                  <Icons.Download />
+                  <span>Unduh Gambar (PNG)</span>
+                </button>
+                <button className="verse-action-btn" onClick={() => handleShareVerse(selectedVerse)}>
+                  <Icons.Share />
+                  <span>Bagikan</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: SAVED VERSES & HIGHLIGHTS */}
+      {showSavedModal && (
+        <div className="modal-backdrop" onClick={() => setShowSavedModal(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">Ayat Tersimpan & Sorotan</div>
+              <button className="modal-close-btn" onClick={() => setShowSavedModal(false)}>
+                <Icons.Close />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {bookmarks.length === 0 && Object.keys(highlights).length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
+                  Belum ada ayat yang ditandai atau disorot. Klik ayat saat membaca untuk menandai!
+                </div>
+              ) : (
+                <div>
+                  {/* Bookmarked verses */}
+                  {bookmarks.map((key) => {
+                    const [bId, ch, v] = key.split(':');
+                    const bMeta = books.find((b) => b.id === parseInt(bId, 10));
+                    return (
+                      <div 
+                        key={key} 
+                        className="saved-item-card"
+                        onClick={() => jumpToPassage(parseInt(bId, 10), parseInt(ch, 10), parseInt(v, 10))}
+                      >
+                        <div className="saved-item-ref">
+                          <span>{bMeta?.name} {ch}:{v}</span>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Ditandai</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Highlighted verses */}
+                  {Object.entries(highlights).map(([key, color]) => {
+                    const [bId, ch, v] = key.split(':');
+                    const bMeta = books.find((b) => b.id === parseInt(bId, 10));
+                    return (
+                      <div 
+                        key={key} 
+                        className="saved-item-card"
+                        style={{ borderLeft: `4px solid var(--hl-${color})` }}
+                        onClick={() => jumpToPassage(parseInt(bId, 10), parseInt(ch, 10), parseInt(v, 10))}
+                      >
+                        <div className="saved-item-ref">
+                          <span>{bMeta?.name} {ch}:{v}</span>
+                          <span style={{ fontSize: '0.72rem', textTransform: 'capitalize', color: 'var(--accent)' }}>Sorot {color}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL: BOOK & CHAPTER PICKER */}
       {showPicker && (
@@ -526,7 +856,6 @@ export default function App() {
 
             <div className="modal-body">
               {pickerBook ? (
-                /* CHAPTERS GRID FOR SELECTED BOOK */
                 <div>
                   <div style={{ marginBottom: '1rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
                     Tersedia {pickerBook.chaptersCount} pasal di Kitab {pickerBook.name}:
@@ -544,7 +873,6 @@ export default function App() {
                   </div>
                 </div>
               ) : (
-                /* BOOKS LIST WITH TESTAMENT TABS */
                 <div>
                   <div className="testament-tabs">
                     <button 
@@ -598,7 +926,7 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL: APPEARANCE & TYPOGRAPHY SETTINGS */}
+      {/* MODAL: APPEARANCE SETTINGS */}
       {showAppearance && (
         <div className="modal-backdrop" onClick={() => setShowAppearance(false)}>
           <div className="modal-card settings-card" onClick={(e) => e.stopPropagation()}>
@@ -619,7 +947,7 @@ export default function App() {
                     onClick={() => setTheme('sepia')}
                     style={{ backgroundColor: '#FAF6ED', color: '#2C241D' }}
                   >
-                    <div className="theme-preview-box" style={{ backgroundColor: '#FAF6ED' }}></div>
+                    <div className="theme-preview-box" style={{ backgroundColor: '#FAF6ED' }} />
                     <span>Sepia</span>
                   </button>
                   <button 
@@ -627,15 +955,15 @@ export default function App() {
                     onClick={() => setTheme('light')}
                     style={{ backgroundColor: '#FFFFFF', color: '#0F172A' }}
                   >
-                    <div className="theme-preview-box" style={{ backgroundColor: '#FFFFFF' }}></div>
+                    <div className="theme-preview-box" style={{ backgroundColor: '#FFFFFF' }} />
                     <span>Terang</span>
                   </button>
                   <button 
                     className={`theme-option-btn ${theme === 'dark' ? 'active' : ''}`}
                     onClick={() => setTheme('dark')}
-                    style={{ backgroundColor: '#0E1014', color: '#F1F5F9' }}
+                    style={{ backgroundColor: '#0A0C10', color: '#F1F5F9' }}
                   >
-                    <div className="theme-preview-box" style={{ backgroundColor: '#0E1014' }}></div>
+                    <div className="theme-preview-box" style={{ backgroundColor: '#0A0C10' }} />
                     <span>Gelap</span>
                   </button>
                 </div>
@@ -648,7 +976,6 @@ export default function App() {
                   <button 
                     className="font-size-btn"
                     onClick={() => setFontSize((s) => Math.max(15, s - 1))}
-                    title="Perkecil"
                   >
                     A-
                   </button>
@@ -663,7 +990,6 @@ export default function App() {
                   <button 
                     className="font-size-btn"
                     onClick={() => setFontSize((s) => Math.min(26, s + 1))}
-                    title="Perbesar"
                   >
                     A+
                   </button>
