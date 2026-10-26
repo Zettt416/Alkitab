@@ -119,17 +119,22 @@ export default function App() {
   // Navigation & Books State
   const [books, setBooks] = useState([]);
   const [currentBookId, setCurrentBookId] = useState(() => {
-    return parseInt(localStorage.getItem('alkitab_book_id') || '43', 10); // Yohanes / John
+    const val = parseInt(localStorage.getItem('alkitab_book_id') || '43', 10);
+    return isNaN(val) ? 43 : val;
   });
   const [currentChapter, setCurrentChapter] = useState(() => {
-    return parseInt(localStorage.getItem('alkitab_chapter') || '1', 10);
+    const val = parseInt(localStorage.getItem('alkitab_chapter') || '1', 10);
+    return isNaN(val) ? 1 : val;
   });
   const [bookCache, setBookCache] = useState({});
   const [loading, setLoading] = useState(true);
 
   // Appearance
   const [theme, setTheme] = useState(() => localStorage.getItem('alkitab_theme') || 'sepia');
-  const [fontSize, setFontSize] = useState(() => parseInt(localStorage.getItem('alkitab_font_size') || '19', 10));
+  const [fontSize, setFontSize] = useState(() => {
+    const val = parseInt(localStorage.getItem('alkitab_font_size') || '19', 10);
+    return isNaN(val) ? 19 : val;
+  });
   const [fontFamily, setFontFamily] = useState(() => localStorage.getItem('alkitab_font_family') || 'serif');
   const [lineHeight, setLineHeight] = useState(() => localStorage.getItem('alkitab_line_height') || '1.85');
   const [readerLayout, setReaderLayout] = useState(() => localStorage.getItem('alkitab_reader_layout') || 'list');
@@ -169,6 +174,12 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [searchScope, setSearchScope] = useState('ALL'); // 'ALL', 'PB', 'PL', 'CURRENT'
+  const [parsedRef, setParsedRef] = useState(null);
+  const [matchedBooks, setMatchedBooks] = useState([]);
+  const [targetVerse, setTargetVerse] = useState(null);
+  const [pickerSearch, setPickerSearch] = useState('');
+  const searchInputRef = useRef(null);
 
   const [showSavedModal, setShowSavedModal] = useState(false);
   const [showCardMaker, setShowCardMaker] = useState(false);
@@ -307,6 +318,7 @@ export default function App() {
 
   const handleSelectVersion = (verKey) => {
     setVersion(verKey);
+    setSelectedVerse(null);
     setShowVersionModal(false);
     showToast(`${t(lang, 'changeVersion')}: ${BIBLE_VERSIONS[verKey].short}`);
   };
@@ -344,9 +356,13 @@ export default function App() {
   };
 
   const jumpToPassage = (bookId, chapter, verse = null) => {
+    const targetMeta = books.find((b) => b.id === bookId);
+    const safeChapter = targetMeta ? Math.min(Math.max(1, chapter), targetMeta.chaptersCount) : Math.max(1, chapter);
     setCurrentBookId(bookId);
-    setCurrentChapter(chapter);
+    setCurrentChapter(safeChapter);
     setShowPicker(false);
+    setPickerBook(null);
+    setPickerSearch('');
     setShowSearch(false);
     setShowSavedModal(false);
     setShowCompareModal(false);
@@ -354,15 +370,63 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     if (verse) {
+      setTargetVerse(verse);
       setTimeout(() => {
         const el = document.getElementById(`verse-${verse}`);
         if (el) {
           el.scrollIntoView({ behavior: 'smooth', block: 'center' });
           setSelectedVerse({ verse });
         }
-      }, 300);
+      }, 250);
     }
   };
+
+  // Keyboard Navigation: Escape to close modals, ArrowLeft/Right for chapters
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const activeTag = document.activeElement?.tagName?.toLowerCase();
+      if (activeTag === 'input' || activeTag === 'textarea') {
+        if (e.key === 'Escape') {
+          document.activeElement.blur();
+        }
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        setShowPicker(false);
+        setShowSearch(false);
+        setShowAppearance(false);
+        setShowVersionModal(false);
+        setShowCompareModal(false);
+        setShowCardMaker(false);
+        setShowSavedModal(false);
+        setSelectedVerse(null);
+      } else if (e.key === 'ArrowLeft') {
+        handlePrevChapter();
+      } else if (e.key === 'ArrowRight') {
+        handleNextChapter();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentChapter, currentBookId, currentBookMeta, books]);
+
+  // Scroll to target verse once scripture content is loaded
+  useEffect(() => {
+    if (targetVerse && !loading && currentBookData) {
+      const timer = setTimeout(() => {
+        const el = document.getElementById(`verse-${targetVerse}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          const verseObj = chapterVerses.find((v) => v.verse === targetVerse) || { verse: targetVerse };
+          setSelectedVerse(verseObj);
+          setTargetVerse(null);
+        }
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [targetVerse, loading, currentBookData, currentChapter, chapterVerses]);
 
   // Verse Highlight Toggle
   const handleSetHighlight = (verseObj, color) => {
@@ -393,11 +457,48 @@ export default function App() {
     localStorage.setItem('alkitab_bookmarks', JSON.stringify(updated));
   };
 
+  const handleRemoveBookmark = (key) => {
+    const updated = bookmarks.filter((k) => k !== key);
+    setBookmarks(updated);
+    localStorage.setItem('alkitab_bookmarks', JSON.stringify(updated));
+    showToast(t(lang, 'toastBmRemoved'));
+  };
+
+  const handleRemoveHighlight = (key) => {
+    const updated = { ...highlights };
+    delete updated[key];
+    setHighlights(updated);
+    localStorage.setItem('alkitab_highlights', JSON.stringify(updated));
+    showToast(t(lang, 'toastHlRemoved'));
+  };
+
+  // Safe clipboard helper
+  const copyTextToClipboard = async (text) => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch {}
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      return true;
+    } catch {}
+    return false;
+  };
+
   const handleCopyVerse = (verseObj) => {
     if (!currentBookMeta) return;
     const bookTitle = getBookName(currentBookMeta);
     const citation = `"${verseObj.text}"\n— ${bookTitle} ${currentChapter}:${verseObj.verse} (${version.toUpperCase()})`;
-    navigator.clipboard.writeText(citation).then(() => {
+    copyTextToClipboard(citation).then(() => {
       showToast(t(lang, 'toastCopied'));
     });
   };
@@ -422,36 +523,45 @@ export default function App() {
     setShowCompareModal(true);
     setComparing(true);
     const list = ['tb', 'ayt', 'kjv', 'web'];
+    const newlyFetched = {};
     const results = [];
 
-    for (const vKey of list) {
-      const cacheKey = `${vKey}:${currentBookId}`;
-      let bData = bookCache[cacheKey];
-      if (!bData) {
-        try {
-          const res = await fetch(`/data/${vKey}/${currentBookId}.json`);
-          if (res.ok) {
-            bData = await res.json();
-            setBookCache((prev) => ({ ...prev, [cacheKey]: bData }));
+    await Promise.all(
+      list.map(async (vKey) => {
+        const cacheKey = `${vKey}:${currentBookId}`;
+        let bData = bookCache[cacheKey];
+        if (!bData) {
+          try {
+            const res = await fetch(`/data/${vKey}/${currentBookId}.json`);
+            if (res.ok) {
+              bData = await res.json();
+              newlyFetched[cacheKey] = bData;
+            }
+          } catch (e) {
+            console.warn('Error loading version for compare:', vKey, e);
           }
-        } catch (e) {
-          console.warn('Error loading version for compare:', vKey, e);
         }
-      }
-      const vText = bData?.chapters?.[currentChapter.toString()]?.find((v) => v.verse === verseObj.verse)?.text;
-      if (vText) {
-        results.push({
-          version: vKey,
-          versionObj: BIBLE_VERSIONS[vKey],
-          text: vText
-        });
-      }
+        const vText = bData?.chapters?.[currentChapter.toString()]?.find((v) => v.verse === verseObj.verse || String(v.verse) === String(verseObj.verse))?.text;
+        if (vText) {
+          results.push({
+            version: vKey,
+            versionObj: BIBLE_VERSIONS[vKey],
+            text: vText
+          });
+        }
+      })
+    );
+
+    if (Object.keys(newlyFetched).length > 0) {
+      setBookCache((prev) => ({ ...prev, ...newlyFetched }));
     }
+
+    results.sort((a, b) => list.indexOf(a.version) - list.indexOf(b.version));
     setCompareData(results);
     setComparing(false);
   };
 
-  // DRAW VERSE CARD TO CANVAS
+  // DRAW VERSE CARD TO CANVAS (with adaptive font scaling)
   const drawVerseCard = () => {
     if (!canvasRef.current || !selectedVerse || !currentBookMeta) return;
     const canvas = canvasRef.current;
@@ -500,7 +610,17 @@ export default function App() {
     ctx.fillStyle = quoteColor;
     ctx.fillText('“', 100, 240);
 
-    ctx.font = '500 48px "Literata", Georgia, serif';
+    let fontSize = 48;
+    let lineHeightPx = 72;
+    if (selectedVerse.text.length > 220) {
+      fontSize = 32;
+      lineHeightPx = 50;
+    } else if (selectedVerse.text.length > 130) {
+      fontSize = 40;
+      lineHeightPx = 62;
+    }
+
+    ctx.font = `500 ${fontSize}px "Literata", Georgia, serif`;
     ctx.fillStyle = textColor;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -522,7 +642,6 @@ export default function App() {
     }
     lines.push(currentLine.trim());
 
-    const lineHeightPx = 72;
     const startY = (height / 2) - ((lines.length * lineHeightPx) / 2) + 20;
 
     lines.forEach((line, index) => {
@@ -555,7 +674,7 @@ export default function App() {
     showToast(t(lang, 'toastCardDownloaded'));
   };
 
-  // Offline Precache per Version
+  // Offline Precache per Version (batch fetching + memory cache integration)
   const handleSyncAllOffline = async () => {
     setSyncingOffline(true);
     showToast(t(lang, 'toastDownloading', { version: version.toUpperCase() }));
@@ -563,9 +682,33 @@ export default function App() {
       if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({ type: 'CACHE_VERSION', version });
       }
-      for (let i = 1; i <= 66; i++) {
-        await fetch(`/data/${version}/${i}.json`);
+
+      const newlyFetched = {};
+      const batchSize = 12;
+      for (let i = 1; i <= 66; i += batchSize) {
+        const chunk = [];
+        for (let j = i; j < Math.min(67, i + batchSize); j++) {
+          chunk.push(j);
+        }
+        await Promise.all(
+          chunk.map(async (bId) => {
+            try {
+              const res = await fetch(`/data/${version}/${bId}.json`);
+              if (res.ok) {
+                const data = await res.json();
+                newlyFetched[`${version}:${bId}`] = data;
+              }
+            } catch {
+              // Ignore single error
+            }
+          })
+        );
       }
+
+      if (Object.keys(newlyFetched).length > 0) {
+        setBookCache((prev) => ({ ...prev, ...newlyFetched }));
+      }
+
       setOfflineStatus(true);
       localStorage.setItem(`alkitab_offline_synced_${version}`, 'true');
       setSyncingOffline(false);
@@ -576,43 +719,220 @@ export default function App() {
     }
   };
 
-  // Search Verses
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
-    setSearching(true);
-    const query = searchQuery.trim().toLowerCase();
-    const results = [];
+  const activeSearchQueryRef = useRef('');
 
-    for (const bId of Object.keys(bookCache)) {
-      if (!bId.startsWith(`${version}:`)) continue;
-      const realId = parseInt(bId.split(':')[1], 10);
-      const book = bookCache[bId];
-      const meta = books.find((b) => b.id === realId);
-      for (const ch of Object.keys(book.chapters || {})) {
-        for (const v of book.chapters[ch]) {
-          if (v.text.toLowerCase().includes(query)) {
+  // Auto-focus search input when modal opens
+  useEffect(() => {
+    if (showSearch) {
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 60);
+    }
+  }, [showSearch]);
+
+  // Parse bible reference e.g. "Yohanes 3:16", "Mzm 23", "1 Kor 13:4", "John 3:16"
+  const parseBibleReference = (input) => {
+    if (!input || !books.length) return null;
+    const clean = input.trim();
+    const match = clean.match(/^([1-3]?\s*[a-zA-Z\u00C0-\u017F]+)\s+(\d+)(?:[:.\s]+(\d+)(?:-\d+)?)?$/i);
+    if (!match) return null;
+
+    const bookPart = match[1].replace(/\s+/g, '').toLowerCase();
+    const chapter = parseInt(match[2], 10);
+    const verse = match[3] ? parseInt(match[3], 10) : null;
+
+    let foundBook = books.find((b) => {
+      const names = [b.abbr, b.abbr_id, b.abbr_en, b.name, b.name_id, b.name_en].filter(Boolean);
+      return names.some((n) => n.replace(/\s+/g, '').toLowerCase() === bookPart);
+    });
+
+    if (!foundBook) {
+      foundBook = books.find((b) => {
+        const names = [b.name, b.name_id, b.name_en, b.abbr, b.abbr_id, b.abbr_en].filter(Boolean);
+        return names.some((n) => n.replace(/\s+/g, '').toLowerCase().startsWith(bookPart));
+      });
+    }
+
+    if (!foundBook) return null;
+    if (chapter < 1 || chapter > foundBook.chaptersCount) return null;
+
+    return { book: foundBook, chapter, verse };
+  };
+
+  const findMatchingBooks = (input) => {
+    if (!input || !books.length) return [];
+    const clean = input.trim().toLowerCase();
+    if (clean.length < 2 || /\d/.test(clean)) return [];
+
+    return books.filter((b) => {
+      const names = [b.name, b.name_id, b.name_en, b.abbr, b.abbr_id, b.abbr_en].filter(Boolean);
+      return names.some((n) => n.toLowerCase().startsWith(clean) || n.toLowerCase() === clean);
+    }).slice(0, 3);
+  };
+
+  const highlightSearchText = (text, query) => {
+    if (!query || !query.trim()) return text;
+    const q = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${q})`, 'gi');
+    const parts = text.split(regex);
+    return parts.map((part, i) =>
+      part.toLowerCase() === query.trim().toLowerCase() ? (
+        <mark key={i} className="search-highlight">{part}</mark>
+      ) : (
+        part
+      )
+    );
+  };
+
+  const executeVerseSearch = async (queryText, scope = searchScope) => {
+    const q = queryText.trim().toLowerCase();
+    if (!q || q.length < 2) {
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+
+    activeSearchQueryRef.current = q;
+    setSearching(true);
+
+    let targetBookIds = [];
+    if (scope === 'CURRENT') {
+      targetBookIds = [currentBookId];
+    } else if (scope === 'PB') {
+      targetBookIds = books.filter((b) => b.testament === 'PB').map((b) => b.id);
+    } else if (scope === 'PL') {
+      targetBookIds = books.filter((b) => b.testament === 'PL').map((b) => b.id);
+    } else {
+      targetBookIds = books.map((b) => b.id);
+    }
+
+    const loadedBookData = {};
+    const booksToFetch = [];
+
+    for (const bId of targetBookIds) {
+      const cacheKey = `${version}:${bId}`;
+      if (bookCache[cacheKey]) {
+        loadedBookData[bId] = bookCache[cacheKey];
+      } else {
+        booksToFetch.push(bId);
+      }
+    }
+
+    if (booksToFetch.length > 0) {
+      const newlyFetched = {};
+      const batchSize = 15;
+      for (let i = 0; i < booksToFetch.length; i += batchSize) {
+        if (activeSearchQueryRef.current !== q) return; // Discard stale search
+        const batch = booksToFetch.slice(i, i + batchSize);
+        await Promise.all(
+          batch.map(async (bId) => {
+            try {
+              const res = await fetch(`/data/${version}/${bId}.json`);
+              if (!res.ok) throw new Error('Not ok');
+              const data = await res.json();
+              newlyFetched[`${version}:${bId}`] = data;
+              loadedBookData[bId] = data;
+            } catch {
+              try {
+                const fb = await fetch(`/data/books/${bId}.json`);
+                if (fb.ok) {
+                  const fbData = await fb.json();
+                  newlyFetched[`${version}:${bId}`] = fbData;
+                  loadedBookData[bId] = fbData;
+                }
+              } catch {
+                // Ignore missing file
+              }
+            }
+          })
+        );
+      }
+      if (Object.keys(newlyFetched).length > 0) {
+        setBookCache((prev) => ({ ...prev, ...newlyFetched }));
+      }
+    }
+
+    if (activeSearchQueryRef.current !== q) return;
+
+    const results = [];
+    for (const bId of targetBookIds) {
+      const bookData = loadedBookData[bId];
+      if (!bookData || !bookData.chapters) continue;
+      const meta = books.find((b) => b.id === bId);
+      const bName = getBookName(meta) || bookData.name;
+
+      for (const ch of Object.keys(bookData.chapters)) {
+        const chapterNum = parseInt(ch, 10);
+        for (const v of bookData.chapters[ch]) {
+          if (v.text.toLowerCase().includes(q)) {
             results.push({
-              bookId: realId,
-              bookName: getBookName(meta) || book.name,
-              chapter: parseInt(ch, 10),
+              bookId: bId,
+              bookName: bName,
+              chapter: chapterNum,
               verse: v.verse,
               text: v.text
             });
-            if (results.length >= 40) break;
+            if (results.length >= 60) break;
           }
         }
-        if (results.length >= 40) break;
+        if (results.length >= 60) break;
       }
+      if (results.length >= 60) break;
     }
+
     setSearchResults(results);
     setSearching(false);
   };
+
+  // Real-time debounced search
+  useEffect(() => {
+    if (!showSearch) return;
+    const trimmed = searchQuery.trim();
+    if (!trimmed) {
+      setSearchResults([]);
+      setSearching(false);
+      setParsedRef(null);
+      setMatchedBooks([]);
+      return;
+    }
+
+    const ref = parseBibleReference(trimmed);
+    setParsedRef(ref);
+
+    const bMatches = findMatchingBooks(trimmed);
+    setMatchedBooks(bMatches);
+
+    const timer = setTimeout(() => {
+      executeVerseSearch(trimmed, searchScope);
+    }, 320);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, searchScope, showSearch, version]);
+
+  const handleSearch = (e) => {
+    if (e) e.preventDefault();
+    const trimmed = searchQuery.trim();
+    if (parsedRef) {
+      jumpToPassage(parsedRef.book.id, parsedRef.chapter, parsedRef.verse);
+      return;
+    }
+    if (!trimmed) return;
+    executeVerseSearch(trimmed, searchScope);
+  };
+
+  const sampleSuggestions = lang === 'en'
+    ? ['John 3:16', 'Psalm 23', 'Romans 8:28', 'love', 'peace', 'faith', 'light']
+    : ['Yohanes 3:16', 'Mazmur 23', 'Roma 8:28', 'kasih', 'damai', 'iman', 'terang'];
 
   const filteredBooks = books.filter((b) => {
     if (pickerTestament === 'PL' && b.testament !== 'PL') return false;
     if (pickerTestament === 'PB' && b.testament !== 'PB') return false;
     if (pickerCategory !== 'ALL' && getBookCategory(b) !== pickerCategory) return false;
+    if (pickerSearch.trim()) {
+      const q = pickerSearch.trim().toLowerCase();
+      const names = [b.name, b.abbr, b.name_id, b.name_en, b.abbr_id, b.abbr_en].filter(Boolean);
+      return names.some((n) => n.toLowerCase().includes(q));
+    }
     return true;
   });
 
@@ -1107,16 +1427,33 @@ export default function App() {
                     const [bId, ch, v] = key.split(':');
                     const bMeta = books.find((b) => b.id === parseInt(bId, 10));
                     const bName = getBookName(bMeta);
+                    const bCache = bookCache[`${version}:${bId}`];
+                    const vText = bCache?.chapters?.[ch]?.find((x) => String(x.verse) === v)?.text;
+
                     return (
                       <div 
                         key={key} 
                         className="saved-item-card"
                         onClick={() => jumpToPassage(parseInt(bId, 10), parseInt(ch, 10), parseInt(v, 10))}
                       >
-                        <div className="saved-item-ref">
-                          <span>{bName} {ch}:{v}</span>
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{t(lang, 'ditandai')}</span>
+                        <div className="saved-item-header">
+                          <div className="saved-item-ref">
+                            <span>{bName} {ch}:{v}</span>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>{t(lang, 'ditandai')}</span>
+                          </div>
+                          <button 
+                            type="button"
+                            className="saved-item-del-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveBookmark(key);
+                            }}
+                            title="Hapus"
+                          >
+                            <Icons.Close />
+                          </button>
                         </div>
+                        {vText && <div className="saved-item-snippet">"{vText}"</div>}
                       </div>
                     );
                   })}
@@ -1125,6 +1462,9 @@ export default function App() {
                     const [bId, ch, v] = key.split(':');
                     const bMeta = books.find((b) => b.id === parseInt(bId, 10));
                     const bName = getBookName(bMeta);
+                    const bCache = bookCache[`${version}:${bId}`];
+                    const vText = bCache?.chapters?.[ch]?.find((x) => String(x.verse) === v)?.text;
+
                     return (
                       <div 
                         key={key} 
@@ -1132,12 +1472,26 @@ export default function App() {
                         style={{ borderLeft: `4px solid var(--hl-${color})` }}
                         onClick={() => jumpToPassage(parseInt(bId, 10), parseInt(ch, 10), parseInt(v, 10))}
                       >
-                        <div className="saved-item-ref">
-                          <span>{bName} {ch}:{v}</span>
-                          <span style={{ fontSize: '0.72rem', textTransform: 'capitalize', color: 'var(--accent)' }}>
-                            {t(lang, 'sorotWarna', { color })}
-                          </span>
+                        <div className="saved-item-header">
+                          <div className="saved-item-ref">
+                            <span>{bName} {ch}:{v}</span>
+                            <span style={{ fontSize: '0.72rem', textTransform: 'capitalize', color: 'var(--accent)', fontWeight: 700 }}>
+                              {t(lang, 'sorotWarna', { color })}
+                            </span>
+                          </div>
+                          <button 
+                            type="button"
+                            className="saved-item-del-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveHighlight(key);
+                            }}
+                            title="Hapus"
+                          >
+                            <Icons.Close />
+                          </button>
                         </div>
+                        {vText && <div className="saved-item-snippet">"{vText}"</div>}
                       </div>
                     );
                   })}
@@ -1194,6 +1548,27 @@ export default function App() {
                 </div>
               ) : (
                 <div>
+                  <div className="picker-search-bar">
+                    <span className="search-icon-inside"><Icons.Search /></span>
+                    <input 
+                      type="text" 
+                      className="search-input"
+                      placeholder={t(lang, 'filterBookPlaceholder')}
+                      value={pickerSearch}
+                      onChange={(e) => setPickerSearch(e.target.value)}
+                    />
+                    {pickerSearch && (
+                      <button 
+                        type="button" 
+                        className="search-clear-inline-btn" 
+                        onClick={() => setPickerSearch('')}
+                        title={t(lang, 'clearSearch')}
+                      >
+                        <Icons.Close />
+                      </button>
+                    )}
+                  </div>
+
                   <div className="testament-tabs">
                     <button 
                       className={`testament-tab ${pickerTestament === 'ALL' ? 'active' : ''}`}
@@ -1460,16 +1835,118 @@ export default function App() {
 
             <div className="modal-body">
               <form onSubmit={handleSearch} className="search-input-wrap">
-                <span className="search-icon-inside"><Icons.Search /></span>
-                <input 
-                  type="text" 
-                  className="search-input"
-                  placeholder={t(lang, 'searchPlaceholder')}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  autoFocus
-                />
+                <div className="search-input-inner">
+                  <span className="search-icon-inside"><Icons.Search /></span>
+                  <input 
+                    ref={searchInputRef}
+                    type="text" 
+                    className="search-input"
+                    placeholder={t(lang, 'searchPlaceholder')}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    autoFocus
+                  />
+                  {searchQuery && (
+                    <button 
+                      type="button" 
+                      className="search-clear-inline-btn" 
+                      onClick={() => setSearchQuery('')}
+                      title={t(lang, 'clearSearch')}
+                    >
+                      <Icons.Close />
+                    </button>
+                  )}
+                </div>
+                <button type="submit" className="search-submit-btn">
+                  {lang === 'en' ? 'Search' : 'Cari'}
+                </button>
               </form>
+
+              {/* Scopes Filter */}
+              <div className="search-scopes-row">
+                <button 
+                  type="button"
+                  className={`search-scope-chip ${searchScope === 'ALL' ? 'active' : ''}`}
+                  onClick={() => setSearchScope('ALL')}
+                >
+                  {t(lang, 'scopeAll')}
+                </button>
+                <button 
+                  type="button"
+                  className={`search-scope-chip ${searchScope === 'PB' ? 'active' : ''}`}
+                  onClick={() => setSearchScope('PB')}
+                >
+                  {t(lang, 'scopeNT')}
+                </button>
+                <button 
+                  type="button"
+                  className={`search-scope-chip ${searchScope === 'PL' ? 'active' : ''}`}
+                  onClick={() => setSearchScope('PL')}
+                >
+                  {t(lang, 'scopeOT')}
+                </button>
+                <button 
+                  type="button"
+                  className={`search-scope-chip ${searchScope === 'CURRENT' ? 'active' : ''}`}
+                  onClick={() => setSearchScope('CURRENT')}
+                >
+                  {t(lang, 'scopeCurrent', { book: currentBookDisplayAbbr || currentBookDisplayName })}
+                </button>
+              </div>
+
+              {/* DIRECT REFERENCE CARD */}
+              {parsedRef && (
+                <div 
+                  className="search-quick-jump-card" 
+                  onClick={() => jumpToPassage(parsedRef.book.id, parsedRef.chapter, parsedRef.verse)}
+                >
+                  <div className="jump-card-icon"><Icons.Book /></div>
+                  <div className="jump-card-content">
+                    <div className="jump-card-tag">{t(lang, 'directJump')}</div>
+                    <div className="jump-card-title">
+                      {getBookName(parsedRef.book)} {parsedRef.chapter}{parsedRef.verse ? `:${parsedRef.verse}` : ''}
+                    </div>
+                  </div>
+                  <div className="jump-card-arrow"><Icons.ChevronRight /></div>
+                </div>
+              )}
+
+              {/* MATCHED BOOKS */}
+              {matchedBooks.length > 0 && !parsedRef && (
+                <div className="search-matched-books">
+                  {matchedBooks.map((b) => (
+                    <button 
+                      key={b.id} 
+                      type="button"
+                      className="matched-book-chip"
+                      onClick={() => jumpToPassage(b.id, 1)}
+                    >
+                      <Icons.Book />
+                      <span>{getBookName(b)} ({b.chaptersCount} {t(lang, 'chapterNum', { chapter: '' }).trim()})</span>
+                      <Icons.ChevronRight />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* QUICK SUGGESTIONS (when query is empty) */}
+              {!searchQuery.trim() && (
+                <div className="search-suggestions-box">
+                  <div className="search-suggestions-title">{t(lang, 'quickSuggestions')}</div>
+                  <div className="search-suggestions-chips">
+                    {sampleSuggestions.map((item) => (
+                      <button 
+                        key={item} 
+                        type="button"
+                        className="suggestion-chip" 
+                        onClick={() => setSearchQuery(item)}
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {searching && (
                 <div className="loading-spinner">
@@ -1480,7 +1957,7 @@ export default function App() {
 
               {searchResults.length > 0 && (
                 <div className="search-results-list">
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.25rem', fontWeight: 700 }}>
                     {t(lang, 'searchResultsCount', { count: searchResults.length })}
                   </div>
                   {searchResults.map((res, idx) => (
@@ -1493,16 +1970,17 @@ export default function App() {
                         {res.bookName} {res.chapter}:{res.verse}
                       </div>
                       <div className="search-result-text">
-                        {res.text}
+                        {highlightSearchText(res.text, searchQuery)}
                       </div>
                     </div>
                   ))}
                 </div>
               )}
 
-              {!searching && searchResults.length === 0 && searchQuery && (
-                <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-muted)' }}>
-                  {t(lang, 'noResults')}
+              {!searching && searchResults.length === 0 && searchQuery.trim().length >= 2 && !parsedRef && matchedBooks.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-muted)' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🔍</div>
+                  <p>{t(lang, 'noResults')}</p>
                 </div>
               )}
             </div>
