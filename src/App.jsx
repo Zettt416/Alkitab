@@ -156,6 +156,67 @@ const Icons = {
     <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
       <rect x="5" y="5" width="14" height="14" rx="2" ry="2"/>
     </svg>
+  ),
+  FlagID: () => (
+    <svg width="20" height="14" viewBox="0 0 24 16" style={{ borderRadius: '3px', flexShrink: 0, boxShadow: '0 0 0 1px rgba(0,0,0,0.15)', display: 'inline-block', verticalAlign: 'middle' }}>
+      <rect width="24" height="8" fill="#E70011" />
+      <rect y="8" width="24" height="8" fill="#FFFFFF" />
+    </svg>
+  ),
+  FlagEN: () => (
+    <svg width="20" height="14" viewBox="0 0 60 36" style={{ borderRadius: '3px', flexShrink: 0, boxShadow: '0 0 0 1px rgba(0,0,0,0.15)', display: 'inline-block', verticalAlign: 'middle', overflow: 'hidden' }}>
+      <rect width="60" height="36" fill="#012169" />
+      <path d="M0 0 L60 36 M60 0 L0 36" stroke="#FFFFFF" strokeWidth="6" />
+      <path d="M0 0 L60 36 M60 0 L0 36" stroke="#C8102E" strokeWidth="3" />
+      <path d="M30 0 v36 M0 18 h60" stroke="#FFFFFF" strokeWidth="10" />
+      <path d="M30 0 v36 M0 18 h60" stroke="#C8102E" strokeWidth="6" />
+    </svg>
+  ),
+  FlagHE: () => (
+    <svg width="20" height="14" viewBox="0 0 32 22" style={{ borderRadius: '3px', flexShrink: 0, boxShadow: '0 0 0 1px rgba(0,0,0,0.15)', display: 'inline-block', verticalAlign: 'middle' }}>
+      <rect width="32" height="22" fill="#FFFFFF" />
+      <rect y="3" width="32" height="2.5" fill="#0038B8" />
+      <rect y="16.5" width="32" height="2.5" fill="#0038B8" />
+      <g transform="translate(16, 11) scale(0.65)" fill="none" stroke="#0038B8" strokeWidth="1.2">
+        <polygon points="0,-6.5 5.6,3.2 -5.6,3.2" />
+        <polygon points="0,6.5 5.6,-3.2 -5.6,-3.2" />
+      </g>
+    </svg>
+  ),
+  BookOpenMini: () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+    </svg>
+  ),
+  SunMini: () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="5"/>
+      <line x1="12" y1="1" x2="12" y2="3"/>
+      <line x1="12" y1="21" x2="12" y2="23"/>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+      <line x1="1" y1="12" x2="3" y2="12"/>
+      <line x1="21" y1="12" x2="23" y2="12"/>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+    </svg>
+  ),
+  MoonMini: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+  ),
+  CheckMini: () => (
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+  ),
+  Gear: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
   )
 };
 
@@ -319,17 +380,32 @@ export default function App() {
     return localStorage.getItem('alkitab_worker_url') || '';
   });
 
-  // Helpers for bilingual metadata
+  const HEBREW_CATEGORIES = {
+    'Taurat': 'תורה',
+    'Sejarah': 'היסטוריה',
+    'Puisi & Hikmat': 'שירה וחוכמה',
+    'Nabi-nabi Besar': 'נביאים ראשונים',
+    'Nabi-nabi Kecil': 'נביאים אחרונים',
+    'Injil': 'בשורות',
+    'Surat Paulus': 'איגרות פאולוס',
+    'Surat Umum': 'איגרות כלליות',
+    'Nubuat': 'נבואה'
+  };
+
+  // Helpers for multilingual metadata
   const getBookName = (b) => {
     if (!b) return '';
+    if (lang === 'he') return b.name_he || b.name_en || b.name;
     return lang === 'en' ? (b.name_en || b.name) : (b.name_id || b.name);
   };
   const getBookAbbr = (b) => {
     if (!b) return '';
+    if (lang === 'he') return b.abbr_he || b.abbr_en || b.abbr;
     return lang === 'en' ? (b.abbr_en || b.abbr) : (b.abbr_id || b.abbr);
   };
   const getBookCategory = (b) => {
     if (!b) return '';
+    if (lang === 'he') return HEBREW_CATEGORIES[b.category] || b.category_en || b.category;
     return lang === 'en' ? (b.category_en || b.category) : (b.category_id || b.category);
   };
 
@@ -473,7 +549,15 @@ export default function App() {
 
   const handleToggleLang = (newLang) => {
     setLang(newLang);
-    showToast(newLang === 'en' ? 'Language switched to English' : 'Bahasa dialihkan ke Indonesia');
+    try {
+      localStorage.setItem('alkitab_lang', newLang);
+    } catch {
+      // ignore
+    }
+    let msg = 'Bahasa dialihkan ke Indonesia';
+    if (newLang === 'en') msg = 'Language switched to English';
+    if (newLang === 'he') msg = 'השפה שונתה לעברית (Hebrew)';
+    showToast(msg);
   };
 
   const handlePrevChapter = () => {
@@ -1565,9 +1649,7 @@ export default function App() {
   // Auto-focus search input when modal opens
   useEffect(() => {
     if (showSearch) {
-      setTimeout(() => {
-        searchInputRef.current?.focus();
-      }, 60);
+      searchInputRef.current?.focus();
     }
   }, [showSearch]);
 
@@ -1730,10 +1812,10 @@ export default function App() {
     if (!showSearch) return;
     const trimmed = searchQuery.trim();
     if (!trimmed) {
-      setSearchResults([]);
-      setSearching(false);
-      setParsedRef(null);
-      setMatchedBooks([]);
+      if (searchResults.length > 0) setSearchResults([]);
+      if (searching) setSearching(false);
+      if (parsedRef !== null) setParsedRef(null);
+      if (matchedBooks.length > 0) setMatchedBooks([]);
       return;
     }
 
@@ -1761,7 +1843,9 @@ export default function App() {
     executeVerseSearch(trimmed, searchScope);
   };
 
-  const sampleSuggestions = lang === 'en'
+  const sampleSuggestions = lang === 'he'
+    ? ['בראשית 1:1', 'תהילים 23', 'אהבה', 'שלום', 'אור', 'אמונה']
+    : lang === 'en'
     ? ['John 3:16', 'Psalm 23', 'Romans 8:28', 'love', 'peace', 'faith', 'light']
     : ['Yohanes 3:16', 'Mazmur 23', 'Roma 8:28', 'kasih', 'damai', 'iman', 'terang'];
 
@@ -1771,7 +1855,7 @@ export default function App() {
     if (pickerCategory !== 'ALL' && getBookCategory(b) !== pickerCategory) return false;
     if (pickerSearch.trim()) {
       const q = pickerSearch.trim().toLowerCase();
-      const names = [b.name, b.abbr, b.name_id, b.name_en, b.abbr_id, b.abbr_en].filter(Boolean);
+      const names = [b.name, b.abbr, b.name_id, b.name_en, b.name_he, b.abbr_id, b.abbr_en, b.abbr_he].filter(Boolean);
       return names.some((n) => n.toLowerCase().includes(q));
     }
     return true;
@@ -1856,6 +1940,13 @@ export default function App() {
                 title="English"
               >
                 EN
+              </button>
+              <button 
+                className={`lang-btn ${lang === 'he' ? 'active' : ''}`}
+                onClick={() => handleToggleLang('he')}
+                title="עִבְרִית (Hebrew)"
+              >
+                HE
               </button>
             </div>
 
@@ -2957,18 +3048,27 @@ export default function App() {
               {/* Language Switcher */}
               <div className="setting-group">
                 <label className="setting-label">{t(lang, 'interfaceLang')}</label>
-                <div className="font-family-toggle">
+                <div className="lang-options-grid">
                   <button 
-                    className={`font-family-btn ${lang === 'id' ? 'active' : ''}`}
+                    className={`lang-option-btn ${lang === 'id' ? 'active' : ''}`}
                     onClick={() => handleToggleLang('id')}
                   >
-                    🇮🇩 Bahasa Indonesia
+                    <Icons.FlagID />
+                    <span>Bahasa Indonesia</span>
                   </button>
                   <button 
-                    className={`font-family-btn ${lang === 'en' ? 'active' : ''}`}
+                    className={`lang-option-btn ${lang === 'en' ? 'active' : ''}`}
                     onClick={() => handleToggleLang('en')}
                   >
-                    🇬🇧 English
+                    <Icons.FlagEN />
+                    <span>English</span>
+                  </button>
+                  <button 
+                    className={`lang-option-btn ${lang === 'he' ? 'active' : ''}`}
+                    onClick={() => handleToggleLang('he')}
+                  >
+                    <Icons.FlagHE />
+                    <span>עִבְרִית (Hebrew)</span>
                   </button>
                 </div>
               </div>
@@ -2997,28 +3097,54 @@ export default function App() {
                 <label className="setting-label">{t(lang, 'readingTheme')}</label>
                 <div className="theme-options-grid">
                   <button 
-                    className={`theme-option-btn ${theme === 'sepia' ? 'active' : ''}`}
+                    type="button"
+                    className={`theme-option-btn theme-sepia ${theme === 'sepia' ? 'active' : ''}`}
                     onClick={() => setTheme('sepia')}
-                    style={{ backgroundColor: '#FAF6ED', color: '#2C241D' }}
+                    title={t(lang, 'themeSepia')}
                   >
-                    <div className="theme-preview-box" style={{ backgroundColor: '#FAF6ED' }} />
-                    <span>{t(lang, 'themeSepia')}</span>
+                    {theme === 'sepia' && (
+                      <span className="theme-option-check">
+                        <Icons.CheckMini />
+                      </span>
+                    )}
+                    <div className="theme-preview-box">
+                      <Icons.BookOpenMini />
+                    </div>
+                    <span className="theme-option-name">{t(lang, 'themeSepia')}</span>
                   </button>
+
                   <button 
-                    className={`theme-option-btn ${theme === 'light' ? 'active' : ''}`}
+                    type="button"
+                    className={`theme-option-btn theme-light ${theme === 'light' ? 'active' : ''}`}
                     onClick={() => setTheme('light')}
-                    style={{ backgroundColor: '#FFFFFF', color: '#0F172A' }}
+                    title={t(lang, 'themeLight')}
                   >
-                    <div className="theme-preview-box" style={{ backgroundColor: '#FFFFFF' }} />
-                    <span>{t(lang, 'themeLight')}</span>
+                    {theme === 'light' && (
+                      <span className="theme-option-check">
+                        <Icons.CheckMini />
+                      </span>
+                    )}
+                    <div className="theme-preview-box">
+                      <Icons.SunMini />
+                    </div>
+                    <span className="theme-option-name">{t(lang, 'themeLight')}</span>
                   </button>
+
                   <button 
-                    className={`theme-option-btn ${theme === 'dark' ? 'active' : ''}`}
+                    type="button"
+                    className={`theme-option-btn theme-dark ${theme === 'dark' ? 'active' : ''}`}
                     onClick={() => setTheme('dark')}
-                    style={{ backgroundColor: '#0A0C10', color: '#F1F5F9' }}
+                    title={t(lang, 'themeDark')}
                   >
-                    <div className="theme-preview-box" style={{ backgroundColor: '#0A0C10' }} />
-                    <span>{t(lang, 'themeDark')}</span>
+                    {theme === 'dark' && (
+                      <span className="theme-option-check">
+                        <Icons.CheckMini />
+                      </span>
+                    )}
+                    <div className="theme-preview-box">
+                      <Icons.MoonMini />
+                    </div>
+                    <span className="theme-option-name">{t(lang, 'themeDark')}</span>
                   </button>
                 </div>
               </div>
@@ -3099,32 +3225,36 @@ export default function App() {
               {/* Reading Layout Mode */}
               <div className="setting-group">
                 <label className="setting-label">{t(lang, 'layoutMode')}</label>
-                <div className="font-family-toggle">
+                <div className="layout-toggle-grid">
                   <button 
-                    className={`font-family-btn ${readerLayout === 'list' ? 'active' : ''}`}
+                    type="button"
+                    className={`layout-option-btn ${readerLayout === 'list' ? 'active' : ''}`}
                     onClick={() => setReaderLayout('list')}
                   >
-                    📋 {t(lang, 'viewVerse')}
+                    <Icons.ListLayout />
+                    <span>{t(lang, 'viewVerse')}</span>
                   </button>
                   <button 
-                    className={`font-family-btn ${readerLayout === 'paragraph' ? 'active' : ''}`}
+                    type="button"
+                    className={`layout-option-btn ${readerLayout === 'paragraph' ? 'active' : ''}`}
                     onClick={() => setReaderLayout('paragraph')}
                   >
-                    📖 {t(lang, 'viewParagraph')}
+                    <Icons.ParagraphLayout />
+                    <span>{t(lang, 'viewParagraph')}</span>
                   </button>
                 </div>
               </div>
 
               {/* Daily Verse Notification & Reminder Box */}
-              <div className="notif-settings-box">
-                <div className="notif-header-row">
-                  <div className="sync-info">
-                    <div className="sync-title">
+              <div className="settings-feature-card">
+                <div className="feature-card-header">
+                  <div className="feature-card-main">
+                    <div className="feature-icon-badge">
                       <Icons.Bell />
-                      <span>{t(lang, 'notifTitle')}</span>
                     </div>
-                    <div className="sync-desc">
-                      {t(lang, 'notifDesc')}
+                    <div className="feature-text">
+                      <div className="feature-title">{t(lang, 'notifTitle')}</div>
+                      <div className="feature-desc">{t(lang, 'notifDesc')}</div>
                     </div>
                   </div>
                   <label className="toggle-switch" title={t(lang, 'notifEnable')}>
@@ -3179,7 +3309,8 @@ export default function App() {
                     <div className="worker-config-box">
                       <details className="worker-details">
                         <summary className="worker-summary">
-                          ⚙️ {t(lang, 'notifWorkerTitle')}
+                          <Icons.Gear />
+                          <span>{t(lang, 'notifWorkerTitle')}</span>
                         </summary>
                         <div className="worker-inputs">
                           <label className="notif-field-label">{t(lang, 'notifWorkerDesc')}</label>
@@ -3210,42 +3341,66 @@ export default function App() {
               </div>
 
               {/* Offline Full Download Box */}
-              <div className="offline-sync-box">
-                <div className="sync-info">
-                  <div className="sync-title">
-                    <Icons.CloudCheck />
-                    <span>{t(lang, 'offlineTitle')} ({version.toUpperCase()})</span>
+              <div className="settings-feature-card">
+                <div className="feature-card-header">
+                  <div className="feature-card-main">
+                    <div className="feature-icon-badge">
+                      <Icons.CloudCheck />
+                    </div>
+                    <div className="feature-text">
+                      <div className="feature-title">
+                        {t(lang, 'offlineTitle')} ({version.toUpperCase()})
+                      </div>
+                      <div className="feature-desc">
+                        {offlineStatus 
+                          ? t(lang, 'offlineSynced', { version: version.toUpperCase() })
+                          : t(lang, 'offlineUnsynced', { version: version.toUpperCase() })}
+                      </div>
+                    </div>
                   </div>
-                  <div className="sync-desc">
-                    {offlineStatus 
-                      ? t(lang, 'offlineSynced', { version: version.toUpperCase() })
-                      : t(lang, 'offlineUnsynced', { version: version.toUpperCase() })}
-                  </div>
+                  <button 
+                    type="button"
+                    className={`sync-btn ${offlineStatus ? 'synced' : ''}`}
+                    onClick={handleSyncAllOffline}
+                    disabled={syncingOffline || offlineStatus}
+                  >
+                    {syncingOffline ? (
+                      <>
+                        <span className="spinner mini" />
+                        <span>{t(lang, 'downloading')}</span>
+                      </>
+                    ) : offlineStatus ? (
+                      <>
+                        <Icons.CheckMini />
+                        <span>{t(lang, 'downloaded')}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Icons.Download />
+                        <span>{t(lang, 'downloadAll')}</span>
+                      </>
+                    )}
+                  </button>
                 </div>
-                <button 
-                  className="sync-btn"
-                  onClick={handleSyncAllOffline}
-                  disabled={syncingOffline || offlineStatus}
-                >
-                  {syncingOffline ? t(lang, 'downloading') : offlineStatus ? t(lang, 'downloaded') : t(lang, 'downloadAll')}
-                </button>
               </div>
 
               {/* Backup & Restore Data Box */}
-              <div className="offline-sync-box backup-sync-box">
-                <div className="sync-info">
-                  <div className="sync-title">
-                    <Icons.Download />
-                    <span>{t(lang, 'backupRestoreTitle')}</span>
-                  </div>
-                  <div className="sync-desc">
-                    {t(lang, 'backupDesc')}
+              <div className="settings-feature-card">
+                <div className="feature-card-header">
+                  <div className="feature-card-main">
+                    <div className="feature-icon-badge">
+                      <Icons.Download />
+                    </div>
+                    <div className="feature-text">
+                      <div className="feature-title">{t(lang, 'backupRestoreTitle')}</div>
+                      <div className="feature-desc">{t(lang, 'backupDesc')}</div>
+                    </div>
                   </div>
                 </div>
-                <div className="backup-btn-group">
+                <div className="backup-action-grid">
                   <button 
                     type="button"
-                    className="sync-btn"
+                    className="backup-action-btn primary"
                     onClick={handleExportBackup}
                     title={t(lang, 'exportBackup')}
                   >
@@ -3254,8 +3409,7 @@ export default function App() {
                   </button>
                   <button 
                     type="button"
-                    className="sync-btn"
-                    style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-strong)' }}
+                    className="backup-action-btn secondary"
                     onClick={() => fileInputRef.current?.click()}
                     title={t(lang, 'importBackup')}
                   >
@@ -3291,7 +3445,6 @@ export default function App() {
                     placeholder={t(lang, 'searchPlaceholder')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    autoFocus
                   />
                   {searchQuery && (
                     <button 

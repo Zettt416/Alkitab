@@ -13,7 +13,9 @@
     "category_id": "Taurat",
     "category_en": "Pentateuch",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "בראשית",
+    "abbr_he": "ברא"
   },
   {
     "id": 2,
@@ -29,7 +31,9 @@
     "category_id": "Taurat",
     "category_en": "Pentateuch",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "שמות",
+    "abbr_he": "שמ"
   },
   {
     "id": 3,
@@ -45,7 +49,9 @@
     "category_id": "Taurat",
     "category_en": "Pentateuch",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "ויקרא",
+    "abbr_he": "ויק"
   },
   {
     "id": 4,
@@ -61,7 +67,9 @@
     "category_id": "Taurat",
     "category_en": "Pentateuch",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "במדבר",
+    "abbr_he": "במד"
   },
   {
     "id": 5,
@@ -77,7 +85,9 @@
     "category_id": "Taurat",
     "category_en": "Pentateuch",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "דברים",
+    "abbr_he": "דבר"
   },
   {
     "id": 6,
@@ -93,7 +103,9 @@
     "category_id": "Sejarah",
     "category_en": "History",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "יהושע",
+    "abbr_he": "יהו"
   },
   {
     "id": 7,
@@ -109,7 +121,9 @@
     "category_id": "Sejarah",
     "category_en": "History",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "שופטים",
+    "abbr_he": "שופ"
   },
   {
     "id": 8,
@@ -125,7 +139,9 @@
     "category_id": "Sejarah",
     "category_en": "History",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "רות",
+    "abbr_he": "רות"
   },
   {
     "id": 9,
@@ -141,7 +157,9 @@
     "category_id": "Sejarah",
     "category_en": "History",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "שמואל א׳",
+    "abbr_he": "שמ\"א"
   },
   {
     "id": 10,
@@ -157,7 +175,9 @@
     "category_id": "Sejarah",
     "category_en": "History",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "שמואל ב׳",
+    "abbr_he": "שמ\"ב"
   },
   {
     "id": 11,
@@ -173,7 +193,9 @@
     "category_id": "Sejarah",
     "category_en": "History",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "מלכים א׳",
+    "abbr_he": "מל\"א"
   },
   {
     "id": 12,
@@ -189,7 +211,9 @@
     "category_id": "Sejarah",
     "category_en": "History",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "מלכים ב׳",
+    "abbr_he": "מל\"ב"
   },
   {
     "id": 13,
@@ -205,7 +229,9 @@
     "category_id": "Sejarah",
     "category_en": "History",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "דברי הימים א׳",
+    "abbr_he": "דה\"א"
   },
   {
     "id": 14,
@@ -221,7 +247,9 @@
     "category_id": "Sejarah",
     "category_en": "History",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "דברי הימים ב׳",
+    "abbr_he": "דה\"ב"
   },
   {
     "id": 15,
@@ -237,7 +265,9 @@
     "category_id": "Sejarah",
     "category_en": "History",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "עזרא",
+    "abbr_he": "עזרא"
   },
   {
     "id": 16,
@@ -253,7 +283,9 @@
     "category_id": "Sejarah",
     "category_en": "History",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "נחמיה",
+    "abbr_he": "נחמ"
   },
   {
     "id": 17,
@@ -269,7 +301,9 @@
     "category_id": "Sejarah",
     "category_en": "History",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "אסתר",
+    "abbr_he": "אסתר"
   },
   {
     "id": 18,
@@ -285,7 +319,9 @@
     "category_id": "Puisi & Hikmat",
     "category_en": "Poetry & Wisdom",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "איוב",
+    "abbr_he": "איוב"
   },
   {
     "id": 19,
@@ -301,7 +337,9 @@
     "category_id": "Puisi & Hikmat",
     "category_en": "Poetry & Wisdom",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "תהילים",
+    "abbr_he": "תהל"
   },
   {
     "id": 20,
@@ -317,7 +355,9 @@
     "category_id": "Puisi & Hikmat",
     "category_en": "Poetry & Wisdom",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "משלי",
+    "abbr_he": "משלי"
   },
   {
     "id": 21,
@@ -333,7 +373,9 @@
     "category_id": "Puisi & Hikmat",
     "category_en": "Poetry & Wisdom",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "קהלת",
+    "abbr_he": "קהל"
   },
   {
     "id": 22,
@@ -349,7 +391,9 @@
     "category_id": "Puisi & Hikmat",
     "category_en": "Poetry & Wisdom",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "שיר השירים",
+    "abbr_he": "שיה\"ש"
   },
   {
     "id": 23,
@@ -365,7 +409,9 @@
     "category_id": "Nabi-nabi Besar",
     "category_en": "Major Prophets",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "ישעיהו",
+    "abbr_he": "ישע"
   },
   {
     "id": 24,
@@ -381,7 +427,9 @@
     "category_id": "Nabi-nabi Besar",
     "category_en": "Major Prophets",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "ירמיהו",
+    "abbr_he": "ירמ"
   },
   {
     "id": 25,
@@ -397,7 +445,9 @@
     "category_id": "Nabi-nabi Besar",
     "category_en": "Major Prophets",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "איכה",
+    "abbr_he": "איכה"
   },
   {
     "id": 26,
@@ -413,7 +463,9 @@
     "category_id": "Nabi-nabi Besar",
     "category_en": "Major Prophets",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "יחזקאל",
+    "abbr_he": "יחז"
   },
   {
     "id": 27,
@@ -429,7 +481,9 @@
     "category_id": "Nabi-nabi Besar",
     "category_en": "Major Prophets",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "דניאל",
+    "abbr_he": "דני"
   },
   {
     "id": 28,
@@ -445,7 +499,9 @@
     "category_id": "Nabi-nabi Kecil",
     "category_en": "Minor Prophets",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "הושע",
+    "abbr_he": "הוש"
   },
   {
     "id": 29,
@@ -461,7 +517,9 @@
     "category_id": "Nabi-nabi Kecil",
     "category_en": "Minor Prophets",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "יואל",
+    "abbr_he": "יואל"
   },
   {
     "id": 30,
@@ -477,7 +535,9 @@
     "category_id": "Nabi-nabi Kecil",
     "category_en": "Minor Prophets",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "עמוס",
+    "abbr_he": "עמוס"
   },
   {
     "id": 31,
@@ -493,7 +553,9 @@
     "category_id": "Nabi-nabi Kecil",
     "category_en": "Minor Prophets",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "עובדיה",
+    "abbr_he": "עוב"
   },
   {
     "id": 32,
@@ -509,7 +571,9 @@
     "category_id": "Nabi-nabi Kecil",
     "category_en": "Minor Prophets",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "יונה",
+    "abbr_he": "יונה"
   },
   {
     "id": 33,
@@ -525,7 +589,9 @@
     "category_id": "Nabi-nabi Kecil",
     "category_en": "Minor Prophets",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "מיכה",
+    "abbr_he": "מיכה"
   },
   {
     "id": 34,
@@ -541,7 +607,9 @@
     "category_id": "Nabi-nabi Kecil",
     "category_en": "Minor Prophets",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "נחום",
+    "abbr_he": "נחום"
   },
   {
     "id": 35,
@@ -557,7 +625,9 @@
     "category_id": "Nabi-nabi Kecil",
     "category_en": "Minor Prophets",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "חבקוק",
+    "abbr_he": "חבק"
   },
   {
     "id": 36,
@@ -573,7 +643,9 @@
     "category_id": "Nabi-nabi Kecil",
     "category_en": "Minor Prophets",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "צפניה",
+    "abbr_he": "צפנ"
   },
   {
     "id": 37,
@@ -589,7 +661,9 @@
     "category_id": "Nabi-nabi Kecil",
     "category_en": "Minor Prophets",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "חגי",
+    "abbr_he": "חגי"
   },
   {
     "id": 38,
@@ -605,7 +679,9 @@
     "category_id": "Nabi-nabi Kecil",
     "category_en": "Minor Prophets",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "זכריה",
+    "abbr_he": "זכר"
   },
   {
     "id": 39,
@@ -621,7 +697,9 @@
     "category_id": "Nabi-nabi Kecil",
     "category_en": "Minor Prophets",
     "testament_id": "PL",
-    "testament_en": "OT"
+    "testament_en": "OT",
+    "name_he": "מלאכי",
+    "abbr_he": "מלא"
   },
   {
     "id": 40,
@@ -637,7 +715,9 @@
     "category_id": "Injil",
     "category_en": "Gospels",
     "testament_id": "PB",
-    "testament_en": "NT"
+    "testament_en": "NT",
+    "name_he": "מתי",
+    "abbr_he": "מתי"
   },
   {
     "id": 41,
@@ -653,7 +733,9 @@
     "category_id": "Injil",
     "category_en": "Gospels",
     "testament_id": "PB",
-    "testament_en": "NT"
+    "testament_en": "NT",
+    "name_he": "מרקוס",
+    "abbr_he": "מרק"
   },
   {
     "id": 42,
@@ -669,7 +751,9 @@
     "category_id": "Injil",
     "category_en": "Gospels",
     "testament_id": "PB",
-    "testament_en": "NT"
+    "testament_en": "NT",
+    "name_he": "לוקס",
+    "abbr_he": "לוק"
   },
   {
     "id": 43,
@@ -685,7 +769,9 @@
     "category_id": "Injil",
     "category_en": "Gospels",
     "testament_id": "PB",
-    "testament_en": "NT"
+    "testament_en": "NT",
+    "name_he": "יוחנן",
+    "abbr_he": "יוח"
   },
   {
     "id": 44,
@@ -701,7 +787,9 @@
     "category_id": "Sejarah",
     "category_en": "History",
     "testament_id": "PB",
-    "testament_en": "NT"
+    "testament_en": "NT",
+    "name_he": "מעשי השליחים",
+    "abbr_he": "מה\"ש"
   },
   {
     "id": 45,
@@ -717,7 +805,9 @@
     "category_id": "Surat Paulus",
     "category_en": "Paul's Letters",
     "testament_id": "PB",
-    "testament_en": "NT"
+    "testament_en": "NT",
+    "name_he": "רומים",
+    "abbr_he": "רומ"
   },
   {
     "id": 46,
@@ -733,7 +823,9 @@
     "category_id": "Surat Paulus",
     "category_en": "Paul's Letters",
     "testament_id": "PB",
-    "testament_en": "NT"
+    "testament_en": "NT",
+    "name_he": "קורינתים א׳",
+    "abbr_he": "קור\"א"
   },
   {
     "id": 47,
@@ -749,7 +841,9 @@
     "category_id": "Surat Paulus",
     "category_en": "Paul's Letters",
     "testament_id": "PB",
-    "testament_en": "NT"
+    "testament_en": "NT",
+    "name_he": "קורינתים ב׳",
+    "abbr_he": "קור\"ב"
   },
   {
     "id": 48,
@@ -765,7 +859,9 @@
     "category_id": "Surat Paulus",
     "category_en": "Paul's Letters",
     "testament_id": "PB",
-    "testament_en": "NT"
+    "testament_en": "NT",
+    "name_he": "גלטים",
+    "abbr_he": "גלט"
   },
   {
     "id": 49,
@@ -781,7 +877,9 @@
     "category_id": "Surat Paulus",
     "category_en": "Paul's Letters",
     "testament_id": "PB",
-    "testament_en": "NT"
+    "testament_en": "NT",
+    "name_he": "אפסים",
+    "abbr_he": "אפס"
   },
   {
     "id": 50,
@@ -797,7 +895,9 @@
     "category_id": "Surat Paulus",
     "category_en": "Paul's Letters",
     "testament_id": "PB",
-    "testament_en": "NT"
+    "testament_en": "NT",
+    "name_he": "פיליפים",
+    "abbr_he": "פיל"
   },
   {
     "id": 51,
@@ -813,7 +913,9 @@
     "category_id": "Surat Paulus",
     "category_en": "Paul's Letters",
     "testament_id": "PB",
-    "testament_en": "NT"
+    "testament_en": "NT",
+    "name_he": "קולוסים",
+    "abbr_he": "קול"
   },
   {
     "id": 52,
@@ -829,7 +931,9 @@
     "category_id": "Surat Paulus",
     "category_en": "Paul's Letters",
     "testament_id": "PB",
-    "testament_en": "NT"
+    "testament_en": "NT",
+    "name_he": "תסלוניקים א׳",
+    "abbr_he": "תסל\"א"
   },
   {
     "id": 53,
@@ -845,7 +949,9 @@
     "category_id": "Surat Paulus",
     "category_en": "Paul's Letters",
     "testament_id": "PB",
-    "testament_en": "NT"
+    "testament_en": "NT",
+    "name_he": "תסלוניקים ב׳",
+    "abbr_he": "תסל\"ב"
   },
   {
     "id": 54,
@@ -861,7 +967,9 @@
     "category_id": "Surat Paulus",
     "category_en": "Paul's Letters",
     "testament_id": "PB",
-    "testament_en": "NT"
+    "testament_en": "NT",
+    "name_he": "טימותיוס א׳",
+    "abbr_he": "טימ\"א"
   },
   {
     "id": 55,
@@ -877,7 +985,9 @@
     "category_id": "Surat Paulus",
     "category_en": "Paul's Letters",
     "testament_id": "PB",
-    "testament_en": "NT"
+    "testament_en": "NT",
+    "name_he": "טימותיוס ב׳",
+    "abbr_he": "טימ\"ב"
   },
   {
     "id": 56,
@@ -893,7 +1003,9 @@
     "category_id": "Surat Paulus",
     "category_en": "Paul's Letters",
     "testament_id": "PB",
-    "testament_en": "NT"
+    "testament_en": "NT",
+    "name_he": "טיטוס",
+    "abbr_he": "טיט"
   },
   {
     "id": 57,
@@ -909,7 +1021,9 @@
     "category_id": "Surat Paulus",
     "category_en": "Paul's Letters",
     "testament_id": "PB",
-    "testament_en": "NT"
+    "testament_en": "NT",
+    "name_he": "פילימון",
+    "abbr_he": "פילמ"
   },
   {
     "id": 58,
@@ -925,7 +1039,9 @@
     "category_id": "Surat Umum",
     "category_en": "General Letters",
     "testament_id": "PB",
-    "testament_en": "NT"
+    "testament_en": "NT",
+    "name_he": "עברים",
+    "abbr_he": "עבר"
   },
   {
     "id": 59,
@@ -941,7 +1057,9 @@
     "category_id": "Surat Umum",
     "category_en": "General Letters",
     "testament_id": "PB",
-    "testament_en": "NT"
+    "testament_en": "NT",
+    "name_he": "יעקב",
+    "abbr_he": "יעק"
   },
   {
     "id": 60,
@@ -957,7 +1075,9 @@
     "category_id": "Surat Umum",
     "category_en": "General Letters",
     "testament_id": "PB",
-    "testament_en": "NT"
+    "testament_en": "NT",
+    "name_he": "פטרוס א׳",
+    "abbr_he": "פט\"א"
   },
   {
     "id": 61,
@@ -973,7 +1093,9 @@
     "category_id": "Surat Umum",
     "category_en": "General Letters",
     "testament_id": "PB",
-    "testament_en": "NT"
+    "testament_en": "NT",
+    "name_he": "פטרוס ב׳",
+    "abbr_he": "פט\"ב"
   },
   {
     "id": 62,
@@ -989,7 +1111,9 @@
     "category_id": "Surat Umum",
     "category_en": "General Letters",
     "testament_id": "PB",
-    "testament_en": "NT"
+    "testament_en": "NT",
+    "name_he": "יוחנן א׳",
+    "abbr_he": "יוח\"א"
   },
   {
     "id": 63,
@@ -1005,7 +1129,9 @@
     "category_id": "Surat Umum",
     "category_en": "General Letters",
     "testament_id": "PB",
-    "testament_en": "NT"
+    "testament_en": "NT",
+    "name_he": "יוחנן ב׳",
+    "abbr_he": "יוח\"ב"
   },
   {
     "id": 64,
@@ -1021,7 +1147,9 @@
     "category_id": "Surat Umum",
     "category_en": "General Letters",
     "testament_id": "PB",
-    "testament_en": "NT"
+    "testament_en": "NT",
+    "name_he": "יוחנן ג׳",
+    "abbr_he": "יוח\"ג"
   },
   {
     "id": 65,
@@ -1037,7 +1165,9 @@
     "category_id": "Surat Umum",
     "category_en": "General Letters",
     "testament_id": "PB",
-    "testament_en": "NT"
+    "testament_en": "NT",
+    "name_he": "יהודה",
+    "abbr_he": "יהוד"
   },
   {
     "id": 66,
@@ -1053,6 +1183,8 @@
     "category_id": "Nubuat",
     "category_en": "Prophecy",
     "testament_id": "PB",
-    "testament_en": "NT"
+    "testament_en": "NT",
+    "name_he": "התגלות",
+    "abbr_he": "התג"
   }
 ]
