@@ -1,4 +1,4 @@
-const CACHE_NAME = 'alkitab-v4';
+const CACHE_NAME = 'alkitab-v5';
 const CORE_ASSETS = [
   '/',
   '/index.html',
@@ -28,6 +28,24 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
+
+  // For books metadata, use Network First with Cache Fallback so updates are immediate
+  if (url.pathname.includes('/data/books.json')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
 
   // For /data/ or assets/, use Cache First with Network Fallback
   if (url.pathname.includes('/data/') || url.pathname.includes('/assets/')) {
@@ -128,4 +146,3 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
-

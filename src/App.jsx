@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BIBLE_VERSIONS, TRANSLATE_LANGUAGES, t } from './i18n.js';
+import { BIBLE_VERSIONS, TRANSLATE_LANGUAGES, HEBREW_BOOK_NAMES, HEBREW_BOOK_ABBRS, t } from './i18n.js';
 
 // Lightweight SVG Icons (Zero dependencies - ponytail)
 const Icons = {
@@ -395,12 +395,12 @@ export default function App() {
   // Helpers for multilingual metadata
   const getBookName = (b) => {
     if (!b) return '';
-    if (lang === 'he') return b.name_he || b.name_en || b.name;
+    if (lang === 'he') return b.name_he || HEBREW_BOOK_NAMES[b.id] || b.name_en || b.name;
     return lang === 'en' ? (b.name_en || b.name) : (b.name_id || b.name);
   };
   const getBookAbbr = (b) => {
     if (!b) return '';
-    if (lang === 'he') return b.abbr_he || b.abbr_en || b.abbr;
+    if (lang === 'he') return b.abbr_he || HEBREW_BOOK_ABBRS[b.id] || b.abbr_en || b.abbr;
     return lang === 'en' ? (b.abbr_en || b.abbr) : (b.abbr_id || b.abbr);
   };
   const getBookCategory = (b) => {
@@ -469,7 +469,7 @@ export default function App() {
 
   // Load books metadata
   useEffect(() => {
-    fetch('/data/books.json')
+    fetch('/data/books.json?v=2')
       .then((res) => res.json())
       .then((data) => setBooks(data))
       .catch((err) => console.error(err));
@@ -538,25 +538,69 @@ export default function App() {
     setTimeout(() => setToast(null), 2500);
   };
 
+  const DEFAULT_VERSION_FOR_LANG = {
+    id: 'tb',
+    en: 'web',
+    he: 'he'
+  };
+
   const handleSelectVersion = (verKey) => {
     handleStopSpeech();
     setShowTranslateModal(false);
     setVersion(verKey);
+    try {
+      localStorage.setItem('alkitab_version', verKey);
+    } catch {
+      // ignore
+    }
     setSelectedVerses([]);
     setShowVersionModal(false);
-    showToast(`${t(lang, 'changeVersion')}: ${BIBLE_VERSIONS[verKey].short}`);
+
+    // By default, synchronize interface language to match the selected Bible version
+    const verLang = BIBLE_VERSIONS[verKey]?.lang;
+    if (verLang && verLang !== lang) {
+      setLang(verLang);
+      try {
+        localStorage.setItem('alkitab_lang', verLang);
+      } catch {
+        // ignore
+      }
+    }
+
+    const activeLang = verLang || lang;
+    showToast(`${t(activeLang, 'changeVersion')}: ${BIBLE_VERSIONS[verKey]?.short || verKey.toUpperCase()}`);
   };
 
-  const handleToggleLang = (newLang) => {
+  const handleToggleLang = (newLang, autoSwitchVersion = true) => {
     setLang(newLang);
     try {
       localStorage.setItem('alkitab_lang', newLang);
     } catch {
       // ignore
     }
+
+    let targetVersion = version;
+    if (autoSwitchVersion) {
+      const currentVerLang = BIBLE_VERSIONS[version]?.lang || 'id';
+      if (currentVerLang !== newLang) {
+        targetVersion = DEFAULT_VERSION_FOR_LANG[newLang] || 'tb';
+        setVersion(targetVersion);
+        try {
+          localStorage.setItem('alkitab_version', targetVersion);
+        } catch {
+          // ignore
+        }
+      }
+    }
+
     let msg = 'Bahasa dialihkan ke Indonesia';
     if (newLang === 'en') msg = 'Language switched to English';
     if (newLang === 'he') msg = 'השפה שונתה לעברית (Hebrew)';
+
+    if (targetVersion !== version) {
+      const verShort = BIBLE_VERSIONS[targetVersion]?.short || targetVersion.toUpperCase();
+      msg += ` • ${verShort}`;
+    }
     showToast(msg);
   };
 
