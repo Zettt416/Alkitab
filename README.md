@@ -13,6 +13,11 @@ Aplikasi Alkitab digital modern multibahasa lengkap 66 Kitab (Perjanjian Lama & 
   - **AYT (Alkitab Yang Terbuka)**: Terjemahan bahasa Indonesia modern & dinamis dari SABDA.
   - **KJV (King James Version)**: Authorized Version klasik bahasa Inggris (1611/PCE).
   - **WEB (World English Bible)**: Bahasa Inggris kontemporer yang jernih dan bebas royalti (Public Domain).
+  - **HEB (Alkitab Ibrani / Westminster Leningrad Codex & Modern)**: Teks asli Ibrani bervokal (nikkud) untuk Perjanjian Lama (WLC) dan Ibrani modern untuk Perjanjian Baru, dengan orientasi kanan-ke-kiri (*Right-to-Left / RTL*) otomatis.
+- **🌐 Terjemahan Dinamis Multi-Bahasa**:
+  - Ketuk ayat mana pun lalu pilih tombol **Terjemahkan** untuk menerjemahkan ayat secara instan ke dalam 15 bahasa dunia (Bahasa Indonesia, Inggris, Ibrani, Spanyol, Prancis, Jerman, Mandarin, Arab, Jepang, Korea, Portugis, Rusia, Yunani, Latin, Italia).
+- **🔊 Suara Bacaan Ayat (Audio / Text-to-Speech)**:
+  - Dengarkan lantunan Firman Tuhan langsung di peramban menggunakan Web Speech API native tanpa unduhan audio berat. Mendukung pembacaan ayat tunggal, multi-ayat, teks terjemahan, maupun perbandingan terjemahan.
 - **🌐 Antarmuka Multibahasa (Bilingual)**:
   - Dukungan penuh pergantian bahasa antarmuka instan antara **Bahasa Indonesia (ID)** dan **English (EN)**.
   - Nama kitab, kategori perikop, navigasi, dan dialog menyesuaikan bahasa yang dipilih.
@@ -32,8 +37,12 @@ Aplikasi Alkitab digital modern multibahasa lengkap 66 Kitab (Perjanjian Lama & 
 - **🚀 Navigasi 3-Ketuk Cepat**:
   - Pemilih Kitab & Pasal instan dengan tab Perjanjian Lama / Baru dan filter kategori (Taurat, Sejarah, Puisi, Injil, Surat, dll).
   - Floating action dock untuk navigasi pasal sebelumnya dan berikutnya.
-- **✨ Interaksi Ayat**:
-  - Ketuk ayat untuk aksi cepat: **Sorot 4 Warna Pastel**, **Salin Ayat** (lengkap dengan nama kitab & versi), **Tandai / Bookmark**, **Bandingkan Versi**, dan **Buat Gambar Kutipan (Card Maker)**.
+- **✨ Interaksi Ayat & Multi-Select**:
+  - Ketuk satu atau beberapa ayat sekaligus untuk aksi serentak: **Sorot 4 Warna Pastel**, **Salin Rentang Ayat** (lengkap dengan penomoran rapi & nama versi), **Tandai / Bookmark**, **Bandingkan Versi**, **Catatan Pribadi**, dan **Buat Gambar Kutipan (Card Maker)**.
+- **📝 Catatan Pribadi (Verse Notes / Journal)**:
+  - Tulis refleksi, doa pribadi, atau catatan khotbah pada ayat tertentu. Dilengkapi indikator ikon catatan pada teks bacaan dan tab manajemen catatan di menu Tersimpan.
+- **💾 Cadangkan & Pulihkan Data (Backup & Restore JSON)**:
+  - Ekspor seluruh tanda bookmark, sorotan warna, dan catatan pribadi menjadi file `.json`, atau pulihkan kembali kapan saja dengan mudah tanpa perlu login/server.
 - **🔍 Pencarian Ayat Cepat**: Temukan ayat berdasarkan kata kunci dengan penanda (*highlight*) instan.
 
 ---
@@ -44,7 +53,7 @@ Aplikasi Alkitab digital modern multibahasa lengkap 66 Kitab (Perjanjian Lama & 
 - **Styling**: Pure Vanilla CSS + CSS Design Tokens (Zero bloated UI framework)
 - **Tipografi**: Google Fonts (*Literata* & *Plus Jakarta Sans*)
 - **PWA**: Web App Manifest + Service Worker Cache Storage API (v2)
-- **Data**: JSON terstruktur per kitab per versi (`/data/tb/`, `/data/ayt/`, `/data/kjv/`, `/data/web/`)
+- **Data**: JSON terstruktur per kitab per versi (`/data/tb/`, `/data/ayt/`, `/data/kjv/`, `/data/web/`, `/data/he/`)
 
 ---
 

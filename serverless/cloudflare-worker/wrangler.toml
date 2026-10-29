@@ -1,0 +1,14 @@
+name = "alkitab-daily-push"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+# Jadwal Cron Trigger (Contoh: 23:00 UTC = 06:00 WIB)
+[triggers]
+crons = ["0 23 * * *"]
+
+# Cloudflare KV untuk menyimpan endpoint subscriber (Gratis)
+# Buat KV dengan: npx wrangler kv:namespace create PUSH_SUBS
+# Lalu masukkan id-nya di bawah ini:
+# [[kv_namespaces]]
+# binding = "PUSH_SUBS"
+# id = "your-kv-namespace-id"

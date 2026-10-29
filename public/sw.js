@@ -1,4 +1,4 @@
-const CACHE_NAME = 'alkitab-v2';
+const CACHE_NAME = 'alkitab-v4';
 const CORE_ASSETS = [
   '/',
   '/index.html',
@@ -81,3 +81,51 @@ self.addEventListener('message', (event) => {
     });
   }
 });
+
+// Web Push Notification Event
+self.addEventListener('push', (event) => {
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch {
+      data = { body: event.data.text() };
+    }
+  }
+
+  const title = data.title || 'Alkitab — Ayat Hari Ini';
+  const options = {
+    body: data.body || 'Waktunya saat teduh dan membaca Firman Tuhan hari ini.',
+    icon: '/icon.svg',
+    badge: '/icon.svg',
+    tag: 'alkitab-daily-verse',
+    renotify: true,
+    data: {
+      url: data.url || '/'
+    }
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Notification Click Event (focus or open app)
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ('focus' in client) {
+          if (client.url.includes(targetUrl) || targetUrl === '/') {
+            return client.focus();
+          }
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
+

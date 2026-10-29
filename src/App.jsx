@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BIBLE_VERSIONS, t } from './i18n.js';
+import { BIBLE_VERSIONS, TRANSLATE_LANGUAGES, t } from './i18n.js';
 
 // Lightweight SVG Icons (Zero dependencies - ponytail)
 const Icons = {
@@ -107,8 +107,76 @@ const Icons = {
       <path d="M17 4v16"/>
       <path d="M19 4H9.5a4.5 4.5 0 0 0 0 9H13"/>
     </svg>
+  ),
+  Bell: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+    </svg>
+  ),
+  Note: () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 20h9"/>
+      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+    </svg>
+  ),
+  NoteIndicator: () => (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+    </svg>
+  ),
+  Upload: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="17 8 12 3 7 8"/>
+      <line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+  ),
+  Speaker: ({ isPlaying }) => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+      {isPlaying ? (
+        <>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+        </>
+      ) : (
+        <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+      )}
+    </svg>
+  ),
+  Globe: () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="2" y1="12" x2="22" y2="12"/>
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+    </svg>
+  ),
+  Stop: () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+      <rect x="5" y="5" width="14" height="14" rx="2" ry="2"/>
+    </svg>
   )
 };
+
+function formatVerseNumbers(nums) {
+  if (!nums || nums.length === 0) return '';
+  const sorted = [...new Set(nums)].map(Number).sort((a, b) => a - b);
+  const ranges = [];
+  let start = sorted[0];
+  let end = sorted[0];
+
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i] === end + 1) {
+      end = sorted[i];
+    } else {
+      ranges.push(start === end ? `${start}` : `${start}-${end}`);
+      start = end = sorted[i];
+    }
+  }
+  ranges.push(start === end ? `${start}` : `${start}-${end}`);
+  return ranges.join(', ');
+}
 
 export default function App() {
   // Bible Version & Language State
@@ -119,10 +187,16 @@ export default function App() {
   // Navigation & Books State
   const [books, setBooks] = useState([]);
   const [currentBookId, setCurrentBookId] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const b = parseInt(params.get('b'), 10);
+    if (!isNaN(b) && b >= 1 && b <= 66) return b;
     const val = parseInt(localStorage.getItem('alkitab_book_id') || '43', 10);
     return isNaN(val) ? 43 : val;
   });
   const [currentChapter, setCurrentChapter] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const c = parseInt(params.get('c'), 10);
+    if (!isNaN(c) && c >= 1) return c;
     const val = parseInt(localStorage.getItem('alkitab_chapter') || '1', 10);
     return isNaN(val) ? 1 : val;
   });
@@ -142,8 +216,8 @@ export default function App() {
   // Reading progress scroll state
   const [scrollProgress, setScrollProgress] = useState(0);
 
-  // Interactivity
-  const [selectedVerse, setSelectedVerse] = useState(null);
+  // Interactivity (Multi-select support)
+  const [selectedVerses, setSelectedVerses] = useState([]);
   
   // Highlights: { [passageKey]: 'yellow' | 'green' | 'blue' | 'pink' }
   const [highlights, setHighlights] = useState(() => {
@@ -162,6 +236,21 @@ export default function App() {
       return [];
     }
   });
+
+  // Personal Notes: { [passageKey]: string }
+  const [notes, setNotes] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('alkitab_notes') || '{}');
+    } catch {
+      return {};
+    }
+  });
+  const [editingNoteVerse, setEditingNoteVerse] = useState(null);
+  const [noteInputText, setNoteInputText] = useState('');
+  const [savedTab, setSavedTab] = useState('all'); // 'all', 'bookmarks', 'highlights', 'notes'
+
+  // Ref for JSON backup/restore file picker
+  const fileInputRef = useRef(null);
 
   // Modals & Panels
   const [showPicker, setShowPicker] = useState(false);
@@ -188,8 +277,29 @@ export default function App() {
 
   // Verse Comparison Modal
   const [showCompareModal, setShowCompareModal] = useState(false);
+  const [compareVerse, setCompareVerse] = useState(null);
   const [compareData, setCompareData] = useState([]);
   const [comparing, setComparing] = useState(false);
+
+  // Text-To-Speech (Web Speech API) & Audio State
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  // Dynamic Verse Translation Modal State
+  const [showTranslateModal, setShowTranslateModal] = useState(false);
+  const [targetTranslateLang, setTargetTranslateLang] = useState('en');
+  const [translatedText, setTranslatedText] = useState('');
+  const [translating, setTranslating] = useState(false);
+  const [translateError, setTranslateError] = useState(null);
+  const [offlineTransCache, setOfflineTransCache] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('alkitab_offline_translations') || '{}');
+    } catch {
+      return {};
+    }
+  });
+  const [transSourceMode, setTransSourceMode] = useState('online'); // 'offline-scripture', 'offline-cached', 'online'
+  const [cachingChapter, setCachingChapter] = useState(false);
+  const [cacheProgress, setCacheProgress] = useState(0);
 
   // Offline Sync & Toast
   const [offlineStatus, setOfflineStatus] = useState(() => {
@@ -197,6 +307,17 @@ export default function App() {
   });
   const [syncingOffline, setSyncingOffline] = useState(false);
   const [toast, setToast] = useState(null);
+
+  // Daily Verse Notification & Reminder State
+  const [notifEnabled, setNotifEnabled] = useState(() => {
+    return localStorage.getItem('alkitab_notif_enabled') === 'true';
+  });
+  const [notifTime, setNotifTime] = useState(() => {
+    return localStorage.getItem('alkitab_notif_time') || '06:00';
+  });
+  const [notifWorkerUrl, setNotifWorkerUrl] = useState(() => {
+    return localStorage.getItem('alkitab_worker_url') || '';
+  });
 
   // Helpers for bilingual metadata
   const getBookName = (b) => {
@@ -307,6 +428,31 @@ export default function App() {
       });
   }, [currentBookId, version, bookCache]);
 
+  // Background prefetching: adjacent books & core versions so switching is 100% instant (no loading)
+  useEffect(() => {
+    if (!books.length) return;
+    const toPrefetch = [];
+    if (currentBookId > 1) toPrefetch.push({ ver: version, id: currentBookId - 1 });
+    if (currentBookId < 66) toPrefetch.push({ ver: version, id: currentBookId + 1 });
+    ['tb', 'web', 'he'].forEach((v) => {
+      if (v !== version) toPrefetch.push({ ver: v, id: currentBookId });
+    });
+
+    toPrefetch.forEach(({ ver, id }) => {
+      const k = `${ver}:${id}`;
+      if (!bookCache[k]) {
+        fetch(`/data/${ver}/${id}.json`)
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (data) {
+              setBookCache((prev) => ({ ...prev, [k]: data }));
+            }
+          })
+          .catch(() => {});
+      }
+    });
+  }, [currentBookId, version, books.length]);
+
   const currentBookMeta = books.find((b) => b.id === currentBookId);
   const currentBookData = bookCache[`${version}:${currentBookId}`];
   const chapterVerses = currentBookData?.chapters?.[currentChapter.toString()] || [];
@@ -317,8 +463,10 @@ export default function App() {
   };
 
   const handleSelectVersion = (verKey) => {
+    handleStopSpeech();
+    setShowTranslateModal(false);
     setVersion(verKey);
-    setSelectedVerse(null);
+    setSelectedVerses([]);
     setShowVersionModal(false);
     showToast(`${t(lang, 'changeVersion')}: ${BIBLE_VERSIONS[verKey].short}`);
   };
@@ -329,7 +477,9 @@ export default function App() {
   };
 
   const handlePrevChapter = () => {
-    setSelectedVerse(null);
+    handleStopSpeech();
+    setShowTranslateModal(false);
+    setSelectedVerses([]);
     if (currentChapter > 1) {
       setCurrentChapter((prev) => prev - 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -344,7 +494,9 @@ export default function App() {
   };
 
   const handleNextChapter = () => {
-    setSelectedVerse(null);
+    handleStopSpeech();
+    setShowTranslateModal(false);
+    setSelectedVerses([]);
     if (currentBookMeta && currentChapter < currentBookMeta.chaptersCount) {
       setCurrentChapter((prev) => prev + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -356,6 +508,8 @@ export default function App() {
   };
 
   const jumpToPassage = (bookId, chapter, verse = null) => {
+    handleStopSpeech();
+    setShowTranslateModal(false);
     const targetMeta = books.find((b) => b.id === bookId);
     const safeChapter = targetMeta ? Math.min(Math.max(1, chapter), targetMeta.chaptersCount) : Math.max(1, chapter);
     setCurrentBookId(bookId);
@@ -366,7 +520,7 @@ export default function App() {
     setShowSearch(false);
     setShowSavedModal(false);
     setShowCompareModal(false);
-    setSelectedVerse(null);
+    setSelectedVerses([]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     if (verse) {
@@ -375,7 +529,8 @@ export default function App() {
         const el = document.getElementById(`verse-${verse}`);
         if (el) {
           el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          setSelectedVerse({ verse });
+          const verseObj = chapterVerses.find((v) => v.verse === verse) || { verse };
+          setSelectedVerses([verseObj]);
         }
       }, 250);
     }
@@ -393,14 +548,17 @@ export default function App() {
       }
 
       if (e.key === 'Escape') {
+        handleStopSpeech();
         setShowPicker(false);
         setShowSearch(false);
         setShowAppearance(false);
         setShowVersionModal(false);
         setShowCompareModal(false);
+        setShowTranslateModal(false);
         setShowCardMaker(false);
         setShowSavedModal(false);
-        setSelectedVerse(null);
+        setEditingNoteVerse(null);
+        setSelectedVerses([]);
       } else if (e.key === 'ArrowLeft') {
         handlePrevChapter();
       } else if (e.key === 'ArrowRight') {
@@ -420,7 +578,7 @@ export default function App() {
         if (el) {
           el.scrollIntoView({ behavior: 'smooth', block: 'center' });
           const verseObj = chapterVerses.find((v) => v.verse === targetVerse) || { verse: targetVerse };
-          setSelectedVerse(verseObj);
+          setSelectedVerses([verseObj]);
           setTargetVerse(null);
         }
       }, 150);
@@ -428,29 +586,55 @@ export default function App() {
     }
   }, [targetVerse, loading, currentBookData, currentChapter, chapterVerses]);
 
-  // Verse Highlight Toggle
-  const handleSetHighlight = (verseObj, color) => {
-    const key = `${currentBookId}:${currentChapter}:${verseObj.verse}`;
+  // Formatted citation helper for single or multiple verses
+  const getFormattedReference = (verses = selectedVerses) => {
+    if (!currentBookMeta || !verses || verses.length === 0) return '';
+    const bookTitle = getBookName(currentBookMeta);
+    const verseNums = formatVerseNumbers(verses.map((v) => v.verse));
+    return `${bookTitle} ${currentChapter}:${verseNums} (${version.toUpperCase()})`;
+  };
+
+  // Toggle single or multiple verse selection
+  const handleVerseClick = (verseObj) => {
+    setSelectedVerses((prev) => {
+      const exists = prev.some((v) => v.verse === verseObj.verse);
+      if (exists) {
+        return prev.filter((v) => v.verse !== verseObj.verse);
+      } else {
+        return [...prev, verseObj].sort((a, b) => a.verse - b.verse);
+      }
+    });
+  };
+
+  // Verse Highlight Toggle (supports multiple selected verses)
+  const handleSetHighlightVerses = (verses = selectedVerses, color) => {
+    if (!verses || verses.length === 0) return;
+    const keys = verses.map((v) => `${currentBookId}:${currentChapter}:${v.verse}`);
+    const allHaveColor = keys.every((k) => highlights[k] === color);
     const updated = { ...highlights };
-    if (updated[key] === color) {
-      delete updated[key];
+    if (allHaveColor) {
+      keys.forEach((k) => delete updated[k]);
       showToast(t(lang, 'toastHlRemoved'));
     } else {
-      updated[key] = color;
+      keys.forEach((k) => { updated[k] = color; });
       showToast(t(lang, 'toastHlAdded'));
     }
     setHighlights(updated);
     localStorage.setItem('alkitab_highlights', JSON.stringify(updated));
   };
 
-  const handleToggleBookmark = (verseObj) => {
-    const key = `${currentBookId}:${currentChapter}:${verseObj.verse}`;
+  // Bookmark Toggle (supports multiple selected verses)
+  const handleToggleBookmarkVerses = (verses = selectedVerses) => {
+    if (!verses || verses.length === 0) return;
+    const keys = verses.map((v) => `${currentBookId}:${currentChapter}:${v.verse}`);
+    const allBookmarked = keys.every((k) => bookmarks.includes(k));
     let updated;
-    if (bookmarks.includes(key)) {
-      updated = bookmarks.filter((k) => k !== key);
+    if (allBookmarked) {
+      updated = bookmarks.filter((k) => !keys.includes(k));
       showToast(t(lang, 'toastBmRemoved'));
     } else {
-      updated = [...bookmarks, key];
+      const toAdd = keys.filter((k) => !bookmarks.includes(k));
+      updated = [...bookmarks, ...toAdd];
       showToast(t(lang, 'toastBmAdded'));
     }
     setBookmarks(updated);
@@ -494,35 +678,304 @@ export default function App() {
     return false;
   };
 
-  const handleCopyVerse = (verseObj) => {
-    if (!currentBookMeta) return;
-    const bookTitle = getBookName(currentBookMeta);
-    const citation = `"${verseObj.text}"\n— ${bookTitle} ${currentChapter}:${verseObj.verse} (${version.toUpperCase()})`;
-    copyTextToClipboard(citation).then(() => {
+  // Copy Verses (Single or Multi-select)
+  const handleCopyVerses = (verses = selectedVerses) => {
+    if (!verses || verses.length === 0 || !currentBookMeta) return;
+    const citation = getFormattedReference(verses);
+    let fullText = '';
+    if (verses.length === 1) {
+      fullText = `"${verses[0].text}"\n— ${citation}`;
+    } else {
+      fullText = `"${verses.map((v) => `${v.verse}. ${v.text}`).join('\n')}"\n— ${citation}`;
+    }
+    copyTextToClipboard(fullText).then(() => {
       showToast(t(lang, 'toastCopied'));
     });
   };
 
-  const handleShareVerse = (verseObj) => {
-    if (!currentBookMeta) return;
-    const bookTitle = getBookName(currentBookMeta);
-    const textToShare = `"${verseObj.text}" — ${bookTitle} ${currentChapter}:${verseObj.verse} (${version.toUpperCase()})`;
+  // Share Verses
+  const handleShareVerses = (verses = selectedVerses) => {
+    if (!verses || verses.length === 0 || !currentBookMeta) return;
+    const citation = getFormattedReference(verses);
+    let textToShare = '';
+    if (verses.length === 1) {
+      textToShare = `"${verses[0].text}" — ${citation}`;
+    } else {
+      textToShare = `"${verses.map((v) => `${v.verse}. ${v.text}`).join('\n')}" — ${citation}`;
+    }
     if (navigator.share) {
       navigator.share({
-        title: `${bookTitle} ${currentChapter}:${verseObj.verse}`,
+        title: citation,
         text: textToShare
       }).catch(() => {});
     } else {
-      handleCopyVerse(verseObj);
+      handleCopyVerses(verses);
     }
   };
 
-  // Compare Verse Across Versions (TB, AYT, KJV, WEB)
+  // Helper to determine TTS language code
+  const getLanguageCodeForVersion = (verKey) => {
+    if (verKey === 'he') return 'he-IL';
+    if (verKey === 'kjv' || verKey === 'web') return 'en-US';
+    return 'id-ID';
+  };
+
+  // Strip cantillation accents (Hebrew teamim) so speech and translation read cleanly
+  const stripCantillation = (str) => {
+    if (!str) return '';
+    return str.replace(/[\u0591-\u05AF\u05BD\u05BF\u05C0\u05C3\u05C4\u05C5]/g, '');
+  };
+
+  // Text-To-Speech (Native Web Speech API - ponytail)
+  const handleStopSpeech = () => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsSpeaking(false);
+  };
+
+  const handleSpeakText = (text, langCode) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      showToast(t(lang, 'ttsUnsupported'));
+      return;
+    }
+
+    if (isSpeaking) {
+      handleStopSpeech();
+      return;
+    }
+
+    if (!text || !text.trim()) return;
+
+    window.speechSynthesis.cancel();
+    const cleanText = stripCantillation(text.replace(/<[^>]+>/g, '')).trim();
+    const utter = new SpeechSynthesisUtterance(cleanText);
+    const targetCode = langCode || getLanguageCodeForVersion(version);
+    utter.lang = targetCode;
+    utter.rate = 0.95;
+
+    try {
+      const voices = window.speechSynthesis.getVoices();
+      if (voices && voices.length > 0) {
+        const prefix = targetCode.split('-')[0].toLowerCase();
+        const matched = voices.find((v) => v.lang.toLowerCase().startsWith(prefix));
+        if (matched) {
+          utter.voice = matched;
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    utter.onstart = () => setIsSpeaking(true);
+    utter.onend = () => setIsSpeaking(false);
+    utter.onerror = () => setIsSpeaking(false);
+
+    window.speechSynthesis.speak(utter);
+  };
+
+  const handleSpeakVerses = (verses) => {
+    if (!verses || verses.length === 0) return;
+    const combined = verses.map((v) => v.text).join(' ');
+    handleSpeakText(combined, getLanguageCodeForVersion(version));
+  };
+
+  // Instant Translation Handlers with Full Offline Support (0ms, zero network)
+  const handleExecuteTranslate = async (sourceText, targetLangCode, vObj = selectedVerses[0] || compareVerse) => {
+    if (!sourceText || !sourceText.trim()) return;
+    setTranslateError(null);
+
+    const vNum = vObj?.verse;
+    const cacheKey = `${currentBookId}:${currentChapter}:${vNum}:${targetLangCode}`;
+
+    // 1. Direct offline resolution from authorized Bible databases (0ms, 100% offline, zero loading)
+    let offlineScripture = null;
+    if (targetLangCode === 'id') {
+      offlineScripture = bookCache[`tb:${currentBookId}`]?.chapters?.[currentChapter.toString()]?.find((v) => v.verse === vNum || String(v.verse) === String(vNum))?.text
+        || bookCache[`ayt:${currentBookId}`]?.chapters?.[currentChapter.toString()]?.find((v) => v.verse === vNum || String(v.verse) === String(vNum))?.text;
+    } else if (targetLangCode === 'en') {
+      offlineScripture = bookCache[`web:${currentBookId}`]?.chapters?.[currentChapter.toString()]?.find((v) => v.verse === vNum || String(v.verse) === String(vNum))?.text
+        || bookCache[`kjv:${currentBookId}`]?.chapters?.[currentChapter.toString()]?.find((v) => v.verse === vNum || String(v.verse) === String(vNum))?.text;
+    } else if (targetLangCode === 'he') {
+      offlineScripture = bookCache[`he:${currentBookId}`]?.chapters?.[currentChapter.toString()]?.find((v) => v.verse === vNum || String(v.verse) === String(vNum))?.text;
+    }
+
+    if (offlineScripture) {
+      setTranslatedText(offlineScripture);
+      setTransSourceMode('offline-scripture');
+      setTranslating(false);
+      return;
+    }
+
+    // 2. Check persistent offline translation cache (0ms, 100% offline, zero loading)
+    if (offlineTransCache[cacheKey]) {
+      setTranslatedText(offlineTransCache[cacheKey]);
+      setTransSourceMode('offline-cached');
+      setTranslating(false);
+      return;
+    }
+
+    // If device is offline and not in cache, fallback gracefully to TB / WEB
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      const fb = bookCache[`tb:${currentBookId}`]?.chapters?.[currentChapter.toString()]?.find((v) => v.verse === vNum || String(v.verse) === String(vNum))?.text
+        || bookCache[`web:${currentBookId}`]?.chapters?.[currentChapter.toString()]?.find((v) => v.verse === vNum || String(v.verse) === String(vNum))?.text;
+      if (fb) {
+        setTranslatedText(fb);
+        setTransSourceMode('offline-scripture');
+        setTranslating(false);
+        return;
+      }
+    }
+
+    // 3. Online fetch & instant local persistence
+    setTranslating(true);
+    const cleanSource = stripCantillation(sourceText).trim();
+    try {
+      const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLangCode}&dt=t&q=${encodeURIComponent(cleanSource)}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('GTX error');
+      const data = await res.json();
+      if (Array.isArray(data) && Array.isArray(data[0])) {
+        const translatedParts = data[0].map((item) => item[0]).filter(Boolean).join('');
+        setTranslatedText(translatedParts);
+        setTransSourceMode('online');
+        setTranslating(false);
+
+        // Save to offline storage immediately
+        setOfflineTransCache((prev) => {
+          const updated = { ...prev, [cacheKey]: translatedParts };
+          try {
+            localStorage.setItem('alkitab_offline_translations', JSON.stringify(updated));
+          } catch {}
+          return updated;
+        });
+        return;
+      }
+      throw new Error('Malformed structure');
+    } catch {
+      // Fallback: MyMemory API
+      try {
+        const fbUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(cleanSource)}&langpair=autodetect|${targetLangCode}`;
+        const fbRes = await fetch(fbUrl);
+        if (fbRes.ok) {
+          const fbData = await fbRes.json();
+          if (fbData?.responseData?.translatedText) {
+            const fbResult = fbData.responseData.translatedText;
+            setTranslatedText(fbResult);
+            setTransSourceMode('online');
+            setTranslating(false);
+
+            setOfflineTransCache((prev) => {
+              const updated = { ...prev, [cacheKey]: fbResult };
+              try {
+                localStorage.setItem('alkitab_offline_translations', JSON.stringify(updated));
+              } catch {}
+              return updated;
+            });
+            return;
+          }
+        }
+      } catch (fbErr) {
+        console.warn('Fallback translate failed', fbErr);
+      }
+      setTranslateError(t(lang, 'translateFailed'));
+      setTranslating(false);
+    }
+  };
+
+  const handleOpenTranslate = (verseObj) => {
+    handleStopSpeech();
+    setShowTranslateModal(true);
+    setTranslatedText('');
+    setTranslateError(null);
+    const targetObj = verseObj || selectedVerses[0] || compareVerse;
+    if (targetObj && targetObj.text) {
+      handleExecuteTranslate(targetObj.text, targetTranslateLang, targetObj);
+    }
+  };
+
+  const handleChangeTranslateLang = (newTargetLang) => {
+    setTargetTranslateLang(newTargetLang);
+    const sourceVerse = selectedVerses[0] || compareVerse;
+    if (sourceVerse && sourceVerse.text) {
+      handleExecuteTranslate(sourceVerse.text, newTargetLang, sourceVerse);
+    }
+  };
+
+  // Batch cache all verses of the chapter in the selected target language for 100% offline reading
+  const handleCacheChapterTranslations = async () => {
+    if (!chapterVerses || chapterVerses.length === 0 || cachingChapter) return;
+    setCachingChapter(true);
+    setCacheProgress(0);
+
+    const total = chapterVerses.length;
+    let completed = 0;
+    const newlyCached = {};
+
+    for (const vObj of chapterVerses) {
+      const cacheKey = `${currentBookId}:${currentChapter}:${vObj.verse}:${targetTranslateLang}`;
+      if (offlineTransCache[cacheKey]) {
+        completed++;
+        setCacheProgress(Math.round((completed / total) * 100));
+        continue;
+      }
+
+      let scriptText = null;
+      if (targetTranslateLang === 'id') {
+        scriptText = bookCache[`tb:${currentBookId}`]?.chapters?.[currentChapter.toString()]?.find((x) => x.verse === vObj.verse)?.text;
+      } else if (targetTranslateLang === 'en') {
+        scriptText = bookCache[`web:${currentBookId}`]?.chapters?.[currentChapter.toString()]?.find((x) => x.verse === vObj.verse)?.text;
+      } else if (targetTranslateLang === 'he') {
+        scriptText = bookCache[`he:${currentBookId}`]?.chapters?.[currentChapter.toString()]?.find((x) => x.verse === vObj.verse)?.text;
+      }
+
+      if (scriptText) {
+        newlyCached[cacheKey] = scriptText;
+      } else {
+        try {
+          const cleanText = stripCantillation(vObj.text).trim();
+          const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetTranslateLang}&dt=t&q=${encodeURIComponent(cleanText)}`;
+          const res = await fetch(url);
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data) && Array.isArray(data[0])) {
+              newlyCached[cacheKey] = data[0].map((item) => item[0]).filter(Boolean).join('');
+            }
+          }
+        } catch {
+          // ignore error in single verse of batch
+        }
+      }
+
+      completed++;
+      setCacheProgress(Math.round((completed / total) * 100));
+      await new Promise((r) => setTimeout(r, 100));
+    }
+
+    setOfflineTransCache((prev) => {
+      const updated = { ...prev, ...newlyCached };
+      try {
+        localStorage.setItem('alkitab_offline_translations', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    setCachingChapter(false);
+    showToast(t(lang, 'offlineChapterSaved', { count: total }));
+  };
+
+  const isChapterFullyCached = chapterVerses.length > 0 && chapterVerses.every((v) => {
+    if (['id', 'en', 'he'].includes(targetTranslateLang)) return true;
+    const k = `${currentBookId}:${currentChapter}:${v.verse}:${targetTranslateLang}`;
+    return Boolean(offlineTransCache[k]);
+  });
+
+  // Compare Verse Across Versions (TB, AYT, KJV, WEB, HE)
   const handleOpenCompare = async (verseObj) => {
-    setSelectedVerse(verseObj);
+    setCompareVerse(verseObj);
     setShowCompareModal(true);
     setComparing(true);
-    const list = ['tb', 'ayt', 'kjv', 'web'];
+    const list = ['tb', 'ayt', 'kjv', 'web', 'he'];
     const newlyFetched = {};
     const results = [];
 
@@ -561,9 +1014,125 @@ export default function App() {
     setComparing(false);
   };
 
-  // DRAW VERSE CARD TO CANVAS (with adaptive font scaling)
+  // Personal Verse Notes Handlers
+  const handleOpenNoteModal = (verseObj) => {
+    const key = `${currentBookId}:${currentChapter}:${verseObj.verse}`;
+    setEditingNoteVerse(verseObj);
+    setNoteInputText(notes[key] || '');
+  };
+
+  const handleSaveNote = () => {
+    if (!editingNoteVerse) return;
+    const key = `${currentBookId}:${currentChapter}:${editingNoteVerse.verse}`;
+    const trimmed = noteInputText.trim();
+    const updated = { ...notes };
+    if (trimmed) {
+      updated[key] = trimmed;
+      showToast(t(lang, 'toastNoteSaved'));
+    } else {
+      delete updated[key];
+      showToast(t(lang, 'toastNoteRemoved'));
+    }
+    setNotes(updated);
+    localStorage.setItem('alkitab_notes', JSON.stringify(updated));
+    setEditingNoteVerse(null);
+  };
+
+  const handleDeleteNote = (key) => {
+    const updated = { ...notes };
+    delete updated[key];
+    setNotes(updated);
+    localStorage.setItem('alkitab_notes', JSON.stringify(updated));
+    showToast(t(lang, 'toastNoteRemoved'));
+  };
+
+  // Backup & Restore Handlers (JSON Export & Import)
+  const handleExportBackup = () => {
+    try {
+      const backupData = {
+        app: 'Alkitab PWA',
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        bookmarks,
+        highlights,
+        notes,
+        preferences: {
+          theme,
+          fontSize,
+          fontFamily,
+          lineHeight,
+          readerLayout,
+          version,
+          lang
+        }
+      };
+      const jsonStr = JSON.stringify(backupData, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const dateStr = new Date().toISOString().slice(0, 10);
+      a.download = `Alkitab-Backup-${dateStr}.json`;
+      a.href = url;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast(t(lang, 'toastBackupSuccess'));
+    } catch {
+      showToast(t(lang, 'toastBackupError'));
+    }
+  };
+
+  const handleImportBackup = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target.result);
+        if (!data || typeof data !== 'object') {
+          throw new Error('Invalid format');
+        }
+
+        let count = 0;
+        if (Array.isArray(data.bookmarks)) {
+          setBookmarks((prev) => {
+            const merged = Array.from(new Set([...prev, ...data.bookmarks]));
+            localStorage.setItem('alkitab_bookmarks', JSON.stringify(merged));
+            return merged;
+          });
+          count += data.bookmarks.length;
+        }
+
+        if (data.highlights && typeof data.highlights === 'object') {
+          setHighlights((prev) => {
+            const merged = { ...prev, ...data.highlights };
+            localStorage.setItem('alkitab_highlights', JSON.stringify(merged));
+            return merged;
+          });
+          count += Object.keys(data.highlights).length;
+        }
+
+        if (data.notes && typeof data.notes === 'object') {
+          setNotes((prev) => {
+            const merged = { ...prev, ...data.notes };
+            localStorage.setItem('alkitab_notes', JSON.stringify(merged));
+            return merged;
+          });
+          count += Object.keys(data.notes).length;
+        }
+
+        showToast(t(lang, 'toastRestoreSuccess', { count }));
+      } catch {
+        showToast(t(lang, 'toastRestoreError'));
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  // DRAW VERSE CARD TO CANVAS (with adaptive font scaling & multi-verse support)
   const drawVerseCard = () => {
-    if (!canvasRef.current || !selectedVerse || !currentBookMeta) return;
+    if (!canvasRef.current || selectedVerses.length === 0 || !currentBookMeta) return;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     const width = 1080;
@@ -610,12 +1179,19 @@ export default function App() {
     ctx.fillStyle = quoteColor;
     ctx.fillText('“', 100, 240);
 
+    const fullVerseText = selectedVerses.length === 1
+      ? selectedVerses[0].text
+      : selectedVerses.map((v) => `${v.verse}. ${v.text}`).join(' ');
+
     let fontSize = 48;
     let lineHeightPx = 72;
-    if (selectedVerse.text.length > 220) {
+    if (fullVerseText.length > 300) {
+      fontSize = 26;
+      lineHeightPx = 42;
+    } else if (fullVerseText.length > 200) {
       fontSize = 32;
       lineHeightPx = 50;
-    } else if (selectedVerse.text.length > 130) {
+    } else if (fullVerseText.length > 120) {
       fontSize = 40;
       lineHeightPx = 62;
     }
@@ -625,7 +1201,7 @@ export default function App() {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    const words = selectedVerse.text.split(' ');
+    const words = fullVerseText.split(' ');
     const lines = [];
     let currentLine = '';
     const maxWidth = 860;
@@ -649,9 +1225,10 @@ export default function App() {
     });
 
     const bookTitle = getBookName(currentBookMeta);
+    const verseRange = formatVerseNumbers(selectedVerses.map((v) => v.verse));
     ctx.font = 'bold 36px "Plus Jakarta Sans", sans-serif';
     ctx.fillStyle = refColor;
-    ctx.fillText(`— ${bookTitle} ${currentChapter}:${selectedVerse.verse} (${version.toUpperCase()}) —`, width / 2, startY + (lines.length * lineHeightPx) + 80);
+    ctx.fillText(`— ${bookTitle} ${currentChapter}:${verseRange} (${version.toUpperCase()}) —`, width / 2, startY + (lines.length * lineHeightPx) + 80);
 
     ctx.font = '600 24px "Plus Jakarta Sans", sans-serif';
     ctx.fillStyle = cardTheme === 'parchment' ? 'rgba(44, 36, 29, 0.4)' : 'rgba(255, 255, 255, 0.4)';
@@ -662,13 +1239,14 @@ export default function App() {
     if (showCardMaker) {
       setTimeout(drawVerseCard, 50);
     }
-  }, [showCardMaker, cardTheme, selectedVerse]);
+  }, [showCardMaker, cardTheme, selectedVerses]);
 
   const handleDownloadCard = () => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current || selectedVerses.length === 0) return;
     const link = document.createElement('a');
     const bookTitle = getBookName(currentBookMeta);
-    link.download = `Alkitab-${bookTitle}-${currentChapter}-${selectedVerse?.verse}-${version.toUpperCase()}.png`;
+    const vTag = formatVerseNumbers(selectedVerses.map((v) => v.verse)).replace(/[\s,]+/g, '_');
+    link.download = `Alkitab-${bookTitle}-${currentChapter}-${vTag}-${version.toUpperCase()}.png`;
     link.href = canvasRef.current.toDataURL('image/png');
     link.click();
     showToast(t(lang, 'toastCardDownloaded'));
@@ -718,6 +1296,269 @@ export default function App() {
       showToast(t(lang, 'toastFailed'));
     }
   };
+
+  // Daily Verse Inspirational Bank
+  const INSPIRATIONAL_VERSES = [
+    {
+      bookId: 19,
+      chapter: 23,
+      verse: 1,
+      refId: 'Mazmur 23:1',
+      refEn: 'Psalm 23:1',
+      textId: 'TUHAN adalah gembalaku, takkan kekurangan aku.',
+      textEn: 'The LORD is my shepherd; I shall not want.'
+    },
+    {
+      bookId: 50,
+      chapter: 4,
+      verse: 13,
+      refId: 'Filipi 4:13',
+      refEn: 'Philippians 4:13',
+      textId: 'Segala perkara dapat kutanggung di dalam Dia yang memberi kekuatan kepadaku.',
+      textEn: 'I can do all things through Christ who strengthens me.'
+    },
+    {
+      bookId: 24,
+      chapter: 29,
+      verse: 11,
+      refId: 'Yeremia 29:11',
+      refEn: 'Jeremiah 29:11',
+      textId: 'Sebab Aku ini mengetahui rancangan-rancangan apa yang ada pada-Ku mengenai kamu, yaitu rancangan damai sejahtera dan bukan rancangan kecelakaan.',
+      textEn: 'For I know the plans I have for you, plans to prosper you and not to harm you, plans to give you hope and a future.'
+    },
+    {
+      bookId: 20,
+      chapter: 3,
+      verse: 5,
+      refId: 'Amsal 3:5-6',
+      refEn: 'Proverbs 3:5-6',
+      textId: 'Percayalah kepada TUHAN dengan segenap hatimu, dan janganlah bersandar kepada pengertianmu sendiri.',
+      textEn: 'Trust in the LORD with all your heart, and lean not on your own understanding.'
+    },
+    {
+      bookId: 40,
+      chapter: 6,
+      verse: 33,
+      refId: 'Matius 6:33',
+      refEn: 'Matthew 6:33',
+      textId: 'Tetapi carilah dahulu Kerajaan Allah dan kebenarannya, maka semuanya itu akan ditambahkan kepadamu.',
+      textEn: 'But seek first the kingdom of God and His righteousness, and all these things shall be added to you.'
+    },
+    {
+      bookId: 23,
+      chapter: 40,
+      verse: 31,
+      refId: 'Yesaya 40:31',
+      refEn: 'Isaiah 40:31',
+      textId: 'Tetapi orang-orang yang menanti-nantikan TUHAN mendapat kekuatan baru: mereka seumpama rajawali yang naik terbang.',
+      textEn: 'Those who hope in the LORD will renew their strength. They will soar on wings like eagles.'
+    },
+    {
+      bookId: 43,
+      chapter: 14,
+      verse: 27,
+      refId: 'Yohanes 14:27',
+      refEn: 'John 14:27',
+      textId: 'Damai sejahtera Kutinggalkan bagimu. Damai sejahtera-Ku Kuberikan kepadamu.',
+      textEn: 'Peace I leave with you; my peace I give you.'
+    },
+    {
+      bookId: 6,
+      chapter: 1,
+      verse: 9,
+      refId: 'Yosua 1:9',
+      refEn: 'Joshua 1:9',
+      textId: 'Kuatkan dan teguhkanlah hatimu! Janganlah kecut dan tawar hati, sebab TUHAN, Allahmu, menyertai engkau.',
+      textEn: 'Be strong and courageous. Do not be afraid; do not be discouraged, for the LORD your God will be with you.'
+    }
+  ];
+
+  // Trigger Notification via Service Worker or Native Notification
+  const triggerNotification = async (title, body, url = '/') => {
+    if ('serviceWorker' in navigator) {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        if (reg && reg.showNotification) {
+          await reg.showNotification(title, {
+            body,
+            icon: '/icon.svg',
+            badge: '/icon.svg',
+            tag: 'alkitab-daily-verse',
+            renotify: true,
+            data: { url }
+          });
+          return true;
+        }
+      } catch (err) {
+        console.warn('Service worker notification error:', err);
+      }
+    }
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const n = new Notification(title, {
+        body,
+        icon: '/icon.svg'
+      });
+      n.onclick = () => {
+        window.focus();
+        if (url && url !== '/') {
+          window.location.href = url;
+        }
+      };
+      return true;
+    }
+    return false;
+  };
+
+  const syncPushSubscriptionWithWorker = async (workerUrl, timeOverride = null) => {
+    if (!workerUrl || !('serviceWorker' in navigator)) return;
+    try {
+      const cleanUrl = workerUrl.trim().replace(/\/$/, '');
+      const reg = await navigator.serviceWorker.ready;
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        const keyRes = await fetch(`${cleanUrl}/api/vapid-key`).catch(() => null);
+        if (keyRes && keyRes.ok) {
+          const { publicKey } = await keyRes.json();
+          if (publicKey) {
+            sub = await reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: publicKey
+            });
+          }
+        }
+      }
+      if (sub) {
+        await fetch(`${cleanUrl}/api/subscribe`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subscription: sub,
+            time: timeOverride || notifTime,
+            version,
+            lang
+          })
+        });
+      }
+    } catch (err) {
+      console.warn('Worker sync note:', err);
+    }
+  };
+
+  const handleToggleNotification = async (enable) => {
+    if (!enable) {
+      setNotifEnabled(false);
+      localStorage.setItem('alkitab_notif_enabled', 'false');
+      showToast(t(lang, 'notifDisabledToast'));
+      return;
+    }
+
+    if (!('Notification' in window)) {
+      showToast(t(lang, 'notifUnsupported'));
+      return;
+    }
+
+    let perm = Notification.permission;
+    if (perm === 'default') {
+      try {
+        perm = await Notification.requestPermission();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    if (perm === 'granted') {
+      setNotifEnabled(true);
+      localStorage.setItem('alkitab_notif_enabled', 'true');
+      showToast(t(lang, 'notifPermissionGranted'));
+
+      const sampleVerse = INSPIRATIONAL_VERSES[0];
+      const title = t(lang, 'notifDailyTitle');
+      const body = `${lang === 'en' ? sampleVerse.textEn : sampleVerse.textId}\n— ${lang === 'en' ? sampleVerse.refEn : sampleVerse.refId}`;
+      const url = `/?b=${sampleVerse.bookId}&c=${sampleVerse.chapter}`;
+      triggerNotification(title, body, url);
+
+      if (notifWorkerUrl) {
+        syncPushSubscriptionWithWorker(notifWorkerUrl);
+      }
+    } else {
+      setNotifEnabled(false);
+      localStorage.setItem('alkitab_notif_enabled', 'false');
+      showToast(t(lang, 'notifPermissionDenied'));
+    }
+  };
+
+  const handleUpdateNotifTime = (time) => {
+    setNotifTime(time);
+    localStorage.setItem('alkitab_notif_time', time);
+    showToast(`${t(lang, 'notifTimeLabel')}: ${time}`);
+    if (notifWorkerUrl && notifEnabled) {
+      syncPushSubscriptionWithWorker(notifWorkerUrl, time);
+    }
+  };
+
+  const handleTestNotification = async () => {
+    if (!('Notification' in window)) {
+      showToast(t(lang, 'notifUnsupported'));
+      return;
+    }
+    let perm = Notification.permission;
+    if (perm !== 'granted') {
+      try {
+        perm = await Notification.requestPermission();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    if (perm === 'granted') {
+      const randomIdx = Math.floor(Math.random() * INSPIRATIONAL_VERSES.length);
+      const sample = INSPIRATIONAL_VERSES[randomIdx];
+      const title = t(lang, 'notifDailyTitle');
+      const body = `${lang === 'en' ? sample.textEn : sample.textId}\n— ${lang === 'en' ? sample.refEn : sample.refId}`;
+      const url = `/?b=${sample.bookId}&c=${sample.chapter}`;
+      const sent = await triggerNotification(title, body, url);
+      if (sent) {
+        showToast(t(lang, 'notifPermissionGranted'));
+      }
+    } else {
+      showToast(t(lang, 'notifPermissionDenied'));
+    }
+  };
+
+  const handleSaveWorkerUrl = () => {
+    localStorage.setItem('alkitab_worker_url', notifWorkerUrl.trim());
+    showToast(t(lang, 'notifWorkerSaved'));
+    if (notifEnabled && notifWorkerUrl.trim()) {
+      syncPushSubscriptionWithWorker(notifWorkerUrl.trim());
+    }
+  };
+
+  // Local In-App Reminder Check (Runs every 30s)
+  useEffect(() => {
+    if (!notifEnabled) return;
+
+    const checkReminder = () => {
+      const now = new Date();
+      const currentHours = String(now.getHours()).padStart(2, '0');
+      const currentMinutes = String(now.getMinutes()).padStart(2, '0');
+      const currentTimeStr = `${currentHours}:${currentMinutes}`;
+      const todayDateStr = now.toISOString().split('T')[0];
+      const lastSentDate = localStorage.getItem('alkitab_last_notif_date');
+
+      if (currentTimeStr === notifTime && lastSentDate !== todayDateStr) {
+        localStorage.setItem('alkitab_last_notif_date', todayDateStr);
+        const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
+        const sample = INSPIRATIONAL_VERSES[dayOfYear % INSPIRATIONAL_VERSES.length];
+        const title = t(lang, 'notifDailyTitle');
+        const body = `${lang === 'en' ? sample.textEn : sample.textId}\n— ${lang === 'en' ? sample.refEn : sample.refId}`;
+        const url = `/?b=${sample.bookId}&c=${sample.chapter}`;
+        triggerNotification(title, body, url);
+      }
+    };
+
+    checkReminder();
+    const timer = setInterval(checkReminder, 30000);
+    return () => clearInterval(timer);
+  }, [notifEnabled, notifTime, lang]);
 
   const activeSearchQueryRef = useRef('');
 
@@ -944,6 +1785,7 @@ export default function App() {
 
   const currentBookDisplayName = getBookName(currentBookMeta);
   const currentBookDisplayAbbr = getBookAbbr(currentBookMeta);
+  const isRTL = BIBLE_VERSIONS[version]?.direction === 'rtl';
 
   return (
     <div className="app-layout">
@@ -1060,7 +1902,7 @@ export default function App() {
               <p>{t(lang, 'loadingScripture')}</p>
             </div>
           ) : (
-            <div className="reader-paper-canvas">
+            <div className={`reader-paper-canvas ${isRTL ? 'dir-rtl hebrew-canvas' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
               {/* EDITORIAL CHAPTER HEADER */}
               <div className="chapter-header-box">
                 <div className="chapter-category-chip">
@@ -1090,9 +1932,10 @@ export default function App() {
                 <div className="verses-flow-list">
                   {chapterVerses.map((verseObj) => {
                     const key = `${currentBookId}:${currentChapter}:${verseObj.verse}`;
-                    const isSelected = selectedVerse?.verse === verseObj.verse;
+                    const isSelected = selectedVerses.some((v) => v.verse === verseObj.verse);
                     const isBookmarked = bookmarks.includes(key);
                     const hlColor = highlights[key];
+                    const hasNote = Boolean(notes[key]);
 
                     return (
                       <React.Fragment key={verseObj.verse}>
@@ -1106,9 +1949,24 @@ export default function App() {
                         <div 
                           id={`verse-${verseObj.verse}`}
                           className={`verse-card-row ${isSelected ? 'selected' : ''} ${isBookmarked ? 'bookmarked' : ''} ${hlColor ? `hl-${hlColor}` : ''}`}
-                          onClick={() => setSelectedVerse(isSelected ? null : verseObj)}
+                          onClick={() => handleVerseClick(verseObj)}
                         >
-                          <div className="verse-num-badge">{verseObj.verse}</div>
+                          <div className="verse-num-badge">
+                            <span>{verseObj.verse}</span>
+                            {hasNote && (
+                              <button 
+                                type="button" 
+                                className="verse-note-indicator-btn" 
+                                title={t(lang, 'editNote')}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenNoteModal(verseObj);
+                                }}
+                              >
+                                <Icons.NoteIndicator />
+                              </button>
+                            )}
+                          </div>
                           <div className="verse-card-text">{verseObj.text}</div>
                         </div>
                       </React.Fragment>
@@ -1119,9 +1977,10 @@ export default function App() {
                 <div className="verses-flow-paragraph">
                   {chapterVerses.map((verseObj) => {
                     const key = `${currentBookId}:${currentChapter}:${verseObj.verse}`;
-                    const isSelected = selectedVerse?.verse === verseObj.verse;
+                    const isSelected = selectedVerses.some((v) => v.verse === verseObj.verse);
                     const isBookmarked = bookmarks.includes(key);
                     const hlColor = highlights[key];
+                    const hasNote = Boolean(notes[key]);
 
                     return (
                       <React.Fragment key={verseObj.verse}>
@@ -1135,9 +1994,23 @@ export default function App() {
                         <span 
                           id={`verse-${verseObj.verse}`}
                           className={`verse-item-inline ${isSelected ? 'selected' : ''} ${isBookmarked ? 'bookmarked' : ''} ${hlColor ? `hl-${hlColor}` : ''}`}
-                          onClick={() => setSelectedVerse(isSelected ? null : verseObj)}
+                          onClick={() => handleVerseClick(verseObj)}
                         >
-                          <sup className="verse-num-pill">{verseObj.verse}</sup>
+                          <sup className="verse-num-pill">
+                            {verseObj.verse}
+                            {hasNote && (
+                              <span 
+                                className="verse-note-indicator-sup" 
+                                title={t(lang, 'editNote')}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenNoteModal(verseObj);
+                                }}
+                              >
+                                <Icons.NoteIndicator />
+                              </span>
+                            )}
+                          </sup>
                           <span className="verse-text">{verseObj.text} </span>
                         </span>
                       </React.Fragment>
@@ -1151,49 +2024,81 @@ export default function App() {
       </main>
 
       {/* POP-UP ACTION BAR (Animos Spring Animation) */}
-      {selectedVerse && (
+      {selectedVerses.length > 0 && (
         <div className="verse-actions-bar">
+          <div className="verse-actions-badge">
+            {selectedVerses.length > 1
+              ? `${selectedVerses.length} ${t(lang, 'ayat')}`
+              : `${selectedVerses[0].verse}`}
+          </div>
+
           <div className="hl-palette">
             <button 
               className="hl-dot" 
               style={{ backgroundColor: '#FEF08A' }} 
-              onClick={() => handleSetHighlight(selectedVerse, 'yellow')}
+              onClick={() => handleSetHighlightVerses(selectedVerses, 'yellow')}
               title="Sorot Emas"
             />
             <button 
               className="hl-dot" 
               style={{ backgroundColor: '#BBF7D0' }} 
-              onClick={() => handleSetHighlight(selectedVerse, 'green')}
+              onClick={() => handleSetHighlightVerses(selectedVerses, 'green')}
               title="Sorot Hijau"
             />
             <button 
               className="hl-dot" 
               style={{ backgroundColor: '#BAE6FD' }} 
-              onClick={() => handleSetHighlight(selectedVerse, 'blue')}
+              onClick={() => handleSetHighlightVerses(selectedVerses, 'blue')}
               title="Sorot Biru"
             />
             <button 
               className="hl-dot" 
               style={{ backgroundColor: '#FBCFE8' }} 
-              onClick={() => handleSetHighlight(selectedVerse, 'pink')}
+              onClick={() => handleSetHighlightVerses(selectedVerses, 'pink')}
               title="Sorot Merah Muda"
             />
           </div>
 
           <div style={{ width: 1, height: 20, backgroundColor: 'var(--border-subtle)' }} />
 
-          <button className="verse-action-btn" onClick={() => handleCopyVerse(selectedVerse)}>
+          <button className="verse-action-btn" onClick={() => handleCopyVerses(selectedVerses)}>
             <Icons.Copy />
             <span>{t(lang, 'salin')}</span>
           </button>
-          <button className="verse-action-btn" onClick={() => handleToggleBookmark(selectedVerse)}>
-            <Icons.Bookmark filled={bookmarks.includes(`${currentBookId}:${currentChapter}:${selectedVerse.verse}`)} />
+          <button className="verse-action-btn" onClick={() => handleToggleBookmarkVerses(selectedVerses)}>
+            <Icons.Bookmark filled={selectedVerses.every((v) => bookmarks.includes(`${currentBookId}:${currentChapter}:${v.verse}`))} />
             <span>{t(lang, 'tandai')}</span>
           </button>
-          <button className="verse-action-btn" onClick={() => handleOpenCompare(selectedVerse)}>
-            <Icons.Compare />
-            <span>{t(lang, 'bandingkan')}</span>
+          <button 
+            type="button"
+            className={`verse-action-btn ${isSpeaking ? 'active-audio' : ''}`} 
+            onClick={() => isSpeaking ? handleStopSpeech() : handleSpeakVerses(selectedVerses)}
+            title={isSpeaking ? t(lang, 'stopAudio') : t(lang, 'listenVerse')}
+          >
+            {isSpeaking ? <Icons.Stop /> : <Icons.Speaker isPlaying={isSpeaking} />}
+            <span>{isSpeaking ? t(lang, 'berhenti') : t(lang, 'suara')}</span>
           </button>
+          <button 
+            type="button"
+            className="verse-action-btn" 
+            onClick={() => handleOpenTranslate(selectedVerses[0])}
+            title={t(lang, 'terjemahkan')}
+          >
+            <Icons.Globe />
+            <span>{t(lang, 'terjemahkan')}</span>
+          </button>
+          {selectedVerses.length === 1 && (
+            <>
+              <button className="verse-action-btn" onClick={() => handleOpenCompare(selectedVerses[0])}>
+                <Icons.Compare />
+                <span>{t(lang, 'bandingkan')}</span>
+              </button>
+              <button className="verse-action-btn" onClick={() => handleOpenNoteModal(selectedVerses[0])}>
+                <Icons.Note />
+                <span>{notes[`${currentBookId}:${currentChapter}:${selectedVerses[0].verse}`] ? t(lang, 'editNote') : t(lang, 'catatan')}</span>
+              </button>
+            </>
+          )}
           <button 
             className="verse-action-btn" 
             style={{ backgroundColor: 'var(--accent)', color: 'var(--text-inverse)' }}
@@ -1202,7 +2107,7 @@ export default function App() {
             <Icons.ImageCard />
             <span>{t(lang, 'gambar')}</span>
           </button>
-          <button className="icon-btn" onClick={() => setSelectedVerse(null)}>
+          <button className="icon-btn" onClick={() => setSelectedVerses([])}>
             <Icons.Close />
           </button>
         </div>
@@ -1285,14 +2190,14 @@ export default function App() {
       )}
 
       {/* MODAL: VERSE COMPARISON ACROSS VERSIONS */}
-      {showCompareModal && selectedVerse && (
-        <div className="modal-backdrop" onClick={() => setShowCompareModal(false)}>
+      {showCompareModal && compareVerse && (
+        <div className="modal-backdrop" onClick={() => { setShowCompareModal(false); handleStopSpeech(); }}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-title">
-                {currentBookDisplayName} {currentChapter}:{selectedVerse.verse}
+                {currentBookDisplayName} {currentChapter}:{compareVerse.verse}
               </div>
-              <button className="modal-close-btn" onClick={() => setShowCompareModal(false)}>
+              <button className="modal-close-btn" onClick={() => { setShowCompareModal(false); handleStopSpeech(); }}>
                 <Icons.Close />
               </button>
             </div>
@@ -1315,20 +2220,40 @@ export default function App() {
                         <div className="compare-item-version">
                           <span>{item.versionObj.name}</span>
                           <span className="version-lang-badge">{item.versionObj.lang.toUpperCase()}</span>
+                          {item.versionObj.direction === 'rtl' && (
+                            <span className="version-lang-badge" style={{ background: 'rgba(217, 119, 6, 0.15)', color: '#d97706' }}>RTL</span>
+                          )}
                         </div>
-                        <button 
-                          className="verse-action-btn"
-                          style={{ padding: '0.25rem 0.6rem', fontSize: '0.74rem' }}
-                          onClick={() => {
-                            navigator.clipboard.writeText(`"${item.text}" — ${currentBookDisplayName} ${currentChapter}:${selectedVerse.verse} (${item.version.toUpperCase()})`);
-                            showToast(t(lang, 'toastCopied'));
-                          }}
-                        >
-                          <Icons.Copy />
-                          <span>{t(lang, 'salin')}</span>
-                        </button>
+                        <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                          <button 
+                            type="button"
+                            className="verse-action-btn"
+                            style={{ padding: '0.25rem 0.6rem', fontSize: '0.74rem' }}
+                            onClick={() => handleSpeakText(item.text, getLanguageCodeForVersion(item.version))}
+                            title={t(lang, 'listenVerse')}
+                          >
+                            <Icons.Speaker />
+                            <span>{t(lang, 'suara')}</span>
+                          </button>
+                          <button 
+                            type="button"
+                            className="verse-action-btn"
+                            style={{ padding: '0.25rem 0.6rem', fontSize: '0.74rem' }}
+                            onClick={() => {
+                              copyTextToClipboard(`"${item.text}" — ${currentBookDisplayName} ${currentChapter}:${compareVerse.verse} (${item.version.toUpperCase()})`).then(() => {
+                                showToast(t(lang, 'toastCopied'));
+                              });
+                            }}
+                          >
+                            <Icons.Copy />
+                            <span>{t(lang, 'salin')}</span>
+                          </button>
+                        </div>
                       </div>
-                      <div className="compare-item-text">
+                      <div 
+                        className={`compare-item-text ${item.versionObj?.direction === 'rtl' ? 'dir-rtl hebrew-text' : ''}`}
+                        dir={item.versionObj?.direction === 'rtl' ? 'rtl' : 'ltr'}
+                      >
                         "{item.text}"
                       </div>
                     </div>
@@ -1340,8 +2265,216 @@ export default function App() {
         </div>
       )}
 
+      {/* MODAL: INSTANT MULTI-LANGUAGE VERSE TRANSLATION */}
+      {showTranslateModal && (selectedVerses[0] || compareVerse) && (
+        <div className="modal-backdrop" onClick={() => { setShowTranslateModal(false); handleStopSpeech(); }}>
+          <div className="modal-card translate-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Icons.Globe />
+                <span>{t(lang, 'translateTitle')}</span>
+                <span className="translate-verse-ref-badge">
+                  {currentBookDisplayName} {currentChapter}:{selectedVerses[0]?.verse || compareVerse?.verse}
+                </span>
+              </div>
+              <button 
+                type="button"
+                className="modal-close-btn" 
+                onClick={() => { setShowTranslateModal(false); handleStopSpeech(); }}
+                title={t(lang, 'tutup')}
+              >
+                <Icons.Close />
+              </button>
+            </div>
+
+            <div className="modal-body translate-modal-body">
+              {/* Original Source Box */}
+              <div className="translate-card-box">
+                <div className="translate-card-header">
+                  <div className="translate-card-label">
+                    <span>{t(lang, 'originalText')}</span>
+                    <span className="version-lang-badge">{version.toUpperCase()}</span>
+                  </div>
+                  <div className="translate-card-actions">
+                    <button
+                      type="button"
+                      className={`verse-action-btn ${isSpeaking ? 'active-audio' : ''}`}
+                      style={{ padding: '0.25rem 0.6rem', fontSize: '0.74rem' }}
+                      onClick={() => handleSpeakText((selectedVerses[0] || compareVerse)?.text, getLanguageCodeForVersion(version))}
+                      title={t(lang, 'listenVerse')}
+                    >
+                      {isSpeaking ? <Icons.Stop /> : <Icons.Speaker isPlaying={isSpeaking} />}
+                      <span>{isSpeaking ? t(lang, 'berhenti') : t(lang, 'suara')}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="verse-action-btn"
+                      style={{ padding: '0.25rem 0.6rem', fontSize: '0.74rem' }}
+                      onClick={() => {
+                        const vObj = selectedVerses[0] || compareVerse;
+                        copyTextToClipboard(`"${vObj?.text}" — ${currentBookDisplayName} ${currentChapter}:${vObj?.verse} (${version.toUpperCase()})`).then(() => {
+                          showToast(t(lang, 'toastCopied'));
+                        });
+                      }}
+                      title={t(lang, 'salin')}
+                    >
+                      <Icons.Copy />
+                      <span>{t(lang, 'salin')}</span>
+                    </button>
+                  </div>
+                </div>
+                <div 
+                  className={`translate-text-content ${version === 'he' ? 'dir-rtl hebrew-text' : ''}`}
+                  dir={version === 'he' ? 'rtl' : 'ltr'}
+                >
+                  {(selectedVerses[0] || compareVerse)?.text}
+                </div>
+              </div>
+
+              {/* Target Language Selection Chips */}
+              <div className="translate-lang-chips-section">
+                <div className="translate-chips-title">
+                  {t(lang, 'translateTo')}
+                </div>
+                <div className="translate-lang-chips-grid">
+                  {TRANSLATE_LANGUAGES.map((lItem) => {
+                    const isActive = targetTranslateLang === lItem.code;
+                    return (
+                      <button
+                        key={lItem.code}
+                        type="button"
+                        className={`translate-chip-btn ${isActive ? 'active' : ''}`}
+                        onClick={() => handleChangeTranslateLang(lItem.code)}
+                      >
+                        <span className="translate-chip-flag">{lItem.flag}</span>
+                        <span className="translate-chip-name">{lItem.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Translated Output Box */}
+              <div className="translate-card-box target-result-box">
+                <div className="translate-card-header">
+                  <div className="translate-card-label">
+                    <span>{t(lang, 'translatedResult')}</span>
+                    <span className="version-lang-badge" style={{ background: 'var(--accent)', color: 'var(--text-inverse)' }}>
+                      {TRANSLATE_LANGUAGES.find((l) => l.code === targetTranslateLang)?.flag}{' '}
+                      {TRANSLATE_LANGUAGES.find((l) => l.code === targetTranslateLang)?.name}
+                    </span>
+                    {transSourceMode === 'offline-scripture' && (
+                      <span className="translate-mode-badge instant">{t(lang, 'offlineInstant')}</span>
+                    )}
+                    {transSourceMode === 'offline-cached' && (
+                      <span className="translate-mode-badge cached">{t(lang, 'offlineCached')}</span>
+                    )}
+                  </div>
+                  <div className="translate-card-actions">
+                    {translatedText && !translating && (
+                      <>
+                        <button
+                          type="button"
+                          className={`verse-action-btn ${isSpeaking ? 'active-audio' : ''}`}
+                          style={{ padding: '0.25rem 0.6rem', fontSize: '0.74rem' }}
+                          onClick={() => {
+                            const curTarget = TRANSLATE_LANGUAGES.find((l) => l.code === targetTranslateLang);
+                            handleSpeakText(translatedText, curTarget?.tts || 'en-US');
+                          }}
+                          title={t(lang, 'listenVerse')}
+                        >
+                          {isSpeaking ? <Icons.Stop /> : <Icons.Speaker isPlaying={isSpeaking} />}
+                          <span>{isSpeaking ? t(lang, 'berhenti') : t(lang, 'suara')}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="verse-action-btn"
+                          style={{ padding: '0.25rem 0.6rem', fontSize: '0.74rem' }}
+                          onClick={() => {
+                            const curTarget = TRANSLATE_LANGUAGES.find((l) => l.code === targetTranslateLang);
+                            const vObj = selectedVerses[0] || compareVerse;
+                            copyTextToClipboard(`"${translatedText}" — ${currentBookDisplayName} ${currentChapter}:${vObj?.verse} [${curTarget?.name || targetTranslateLang}]`).then(() => {
+                              showToast(t(lang, 'toastCopied'));
+                            });
+                          }}
+                          title={t(lang, 'salin')}
+                        >
+                          <Icons.Copy />
+                          <span>{t(lang, 'salin')}</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="translate-result-body">
+                  {translating ? (
+                    <div className="translate-loading-state">
+                      <div className="spinner small"></div>
+                      <span>{t(lang, 'translating')}</span>
+                    </div>
+                  ) : translateError ? (
+                    <div className="translate-error-state">
+                      <span>{translateError}</span>
+                      <button
+                        type="button"
+                        className="translate-retry-btn"
+                        onClick={() => {
+                          const vObj = selectedVerses[0] || compareVerse;
+                          if (vObj?.text) handleExecuteTranslate(vObj.text, targetTranslateLang);
+                        }}
+                      >
+                        Coba Lagi
+                      </button>
+                    </div>
+                  ) : (
+                    <div 
+                      className={`translate-text-content result-text ${TRANSLATE_LANGUAGES.find((l) => l.code === targetTranslateLang)?.rtl ? 'dir-rtl' : ''}`}
+                      dir={TRANSLATE_LANGUAGES.find((l) => l.code === targetTranslateLang)?.rtl ? 'rtl' : 'ltr'}
+                    >
+                      {translatedText || '—'}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Offline Chapter Sync & Offline Notice Bar */}
+              <div className="translate-footer-bar">
+                <button
+                  type="button"
+                  className="offline-chapter-sync-btn"
+                  onClick={handleCacheChapterTranslations}
+                  disabled={cachingChapter}
+                  title={t(lang, 'offlineSaveChapter')}
+                >
+                  {cachingChapter ? (
+                    <>
+                      <div className="spinner mini" />
+                      <span>{t(lang, 'offlineSavingChapter', { progress: cacheProgress })}</span>
+                    </>
+                  ) : isChapterFullyCached ? (
+                    <>
+                      <span>{t(lang, 'offlineChapterSaved', { count: chapterVerses.length })}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>{t(lang, 'offlineSaveChapter')}</span>
+                    </>
+                  )}
+                </button>
+                {transSourceMode !== 'online' && (
+                  <div className="translate-mode-hint">
+                    {t(lang, 'offlineNotice')}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODAL: VERSE CARD GENERATOR */}
-      {showCardMaker && selectedVerse && (
+      {showCardMaker && selectedVerses.length > 0 && (
         <div className="modal-backdrop" onClick={() => setShowCardMaker(false)}>
           <div className="modal-card card-maker-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -1395,7 +2528,7 @@ export default function App() {
                   <Icons.Download />
                   <span>{t(lang, 'downloadPng')}</span>
                 </button>
-                <button className="verse-action-btn" onClick={() => handleShareVerse(selectedVerse)}>
+                <button className="verse-action-btn" onClick={() => handleShareVerses(selectedVerses)}>
                   <Icons.Share />
                   <span>{t(lang, 'share')}</span>
                 </button>
@@ -1405,10 +2538,81 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL: SAVED VERSES & HIGHLIGHTS */}
+      {/* MODAL: PERSONAL VERSE NOTE */}
+      {editingNoteVerse && (
+        <div className="modal-backdrop" onClick={() => setEditingNoteVerse(null)}>
+          <div className="modal-card note-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <Icons.Note />
+                <span>
+                  {t(lang, 'noteTitle', { 
+                    reference: `${getBookName(currentBookMeta)} ${currentChapter}:${editingNoteVerse.verse}` 
+                  })}
+                </span>
+              </div>
+              <button className="modal-close-btn" onClick={() => setEditingNoteVerse(null)}>
+                <Icons.Close />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {editingNoteVerse.text && (
+                <div className="note-verse-preview">
+                  "{editingNoteVerse.text}"
+                </div>
+              )}
+
+              <div className="note-input-group">
+                <label className="setting-label">{t(lang, 'noteLabel')}</label>
+                <textarea
+                  className="note-textarea"
+                  value={noteInputText}
+                  onChange={(e) => setNoteInputText(e.target.value)}
+                  placeholder={t(lang, 'notePlaceholder')}
+                  rows={5}
+                  autoFocus
+                />
+              </div>
+
+              <div className="note-modal-actions">
+                {notes[`${currentBookId}:${currentChapter}:${editingNoteVerse.verse}`] && (
+                  <button 
+                    type="button" 
+                    className="note-delete-btn"
+                    onClick={() => {
+                      handleDeleteNote(`${currentBookId}:${currentChapter}:${editingNoteVerse.verse}`);
+                      setEditingNoteVerse(null);
+                    }}
+                  >
+                    {t(lang, 'deleteNote')}
+                  </button>
+                )}
+                <div style={{ flex: 1 }} />
+                <button 
+                  type="button" 
+                  className="secondary-btn" 
+                  onClick={() => setEditingNoteVerse(null)}
+                >
+                  {t(lang, 'batal')}
+                </button>
+                <button 
+                  type="button" 
+                  className="primary-action-btn" 
+                  onClick={handleSaveNote}
+                >
+                  {t(lang, 'saveNote')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: SAVED VERSES, HIGHLIGHTS & NOTES */}
       {showSavedModal && (
         <div className="modal-backdrop" onClick={() => setShowSavedModal(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-card saved-modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-title">{t(lang, 'savedTitle')}</div>
               <button className="modal-close-btn" onClick={() => setShowSavedModal(false)}>
@@ -1416,14 +2620,46 @@ export default function App() {
               </button>
             </div>
 
+            <div className="saved-tabs-bar">
+              <button 
+                type="button"
+                className={`saved-tab-pill ${savedTab === 'all' ? 'active' : ''}`}
+                onClick={() => setSavedTab('all')}
+              >
+                {t(lang, 'tabAll', { count: bookmarks.length + Object.keys(highlights).length + Object.keys(notes).length })}
+              </button>
+              <button 
+                type="button"
+                className={`saved-tab-pill ${savedTab === 'bookmarks' ? 'active' : ''}`}
+                onClick={() => setSavedTab('bookmarks')}
+              >
+                {t(lang, 'tabBookmarks', { count: bookmarks.length })}
+              </button>
+              <button 
+                type="button"
+                className={`saved-tab-pill ${savedTab === 'highlights' ? 'active' : ''}`}
+                onClick={() => setSavedTab('highlights')}
+              >
+                {t(lang, 'tabHighlights', { count: Object.keys(highlights).length })}
+              </button>
+              <button 
+                type="button"
+                className={`saved-tab-pill ${savedTab === 'notes' ? 'active' : ''}`}
+                onClick={() => setSavedTab('notes')}
+              >
+                {t(lang, 'tabNotes', { count: Object.keys(notes).length })}
+              </button>
+            </div>
+
             <div className="modal-body">
-              {bookmarks.length === 0 && Object.keys(highlights).length === 0 ? (
+              {bookmarks.length === 0 && Object.keys(highlights).length === 0 && Object.keys(notes).length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
                   {t(lang, 'emptySaved')}
                 </div>
               ) : (
-                <div>
-                  {bookmarks.map((key) => {
+                <div className="saved-items-container">
+                  {/* Bookmarks */}
+                  {(savedTab === 'all' || savedTab === 'bookmarks') && bookmarks.map((key) => {
                     const [bId, ch, v] = key.split(':');
                     const bMeta = books.find((b) => b.id === parseInt(bId, 10));
                     const bName = getBookName(bMeta);
@@ -1432,7 +2668,7 @@ export default function App() {
 
                     return (
                       <div 
-                        key={key} 
+                        key={`bm-${key}`} 
                         className="saved-item-card"
                         onClick={() => jumpToPassage(parseInt(bId, 10), parseInt(ch, 10), parseInt(v, 10))}
                       >
@@ -1458,7 +2694,8 @@ export default function App() {
                     );
                   })}
 
-                  {Object.entries(highlights).map(([key, color]) => {
+                  {/* Highlights */}
+                  {(savedTab === 'all' || savedTab === 'highlights') && Object.entries(highlights).map(([key, color]) => {
                     const [bId, ch, v] = key.split(':');
                     const bMeta = books.find((b) => b.id === parseInt(bId, 10));
                     const bName = getBookName(bMeta);
@@ -1467,7 +2704,7 @@ export default function App() {
 
                     return (
                       <div 
-                        key={key} 
+                        key={`hl-${key}`} 
                         className="saved-item-card"
                         style={{ borderLeft: `4px solid var(--hl-${color})` }}
                         onClick={() => jumpToPassage(parseInt(bId, 10), parseInt(ch, 10), parseInt(v, 10))}
@@ -1495,8 +2732,90 @@ export default function App() {
                       </div>
                     );
                   })}
+
+                  {/* Notes */}
+                  {(savedTab === 'all' || savedTab === 'notes') && Object.entries(notes).map(([key, noteText]) => {
+                    const [bId, ch, v] = key.split(':');
+                    const bMeta = books.find((b) => b.id === parseInt(bId, 10));
+                    const bName = getBookName(bMeta);
+                    const bCache = bookCache[`${version}:${bId}`];
+                    const vText = bCache?.chapters?.[ch]?.find((x) => String(x.verse) === v)?.text;
+
+                    return (
+                      <div 
+                        key={`note-${key}`} 
+                        className="saved-item-card saved-note-card"
+                        onClick={() => jumpToPassage(parseInt(bId, 10), parseInt(ch, 10), parseInt(v, 10))}
+                      >
+                        <div className="saved-item-header">
+                          <div className="saved-item-ref">
+                            <span>{bName} {ch}:{v}</span>
+                            <span className="saved-note-pill">
+                              <Icons.Note /> {t(lang, 'catatan')}
+                            </span>
+                          </div>
+                          <div className="saved-actions-group">
+                            <button 
+                              type="button"
+                              className="saved-item-del-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const vObj = bCache?.chapters?.[ch]?.find((x) => String(x.verse) === v) || { verse: parseInt(v, 10), text: vText || '' };
+                                handleOpenNoteModal(vObj);
+                              }}
+                              title={t(lang, 'editNote')}
+                            >
+                              <Icons.NoteIndicator />
+                            </button>
+                            <button 
+                              type="button"
+                              className="saved-item-del-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteNote(key);
+                              }}
+                              title={t(lang, 'deleteNote')}
+                            >
+                              <Icons.Close />
+                            </button>
+                          </div>
+                        </div>
+                        {vText && <div className="saved-item-snippet">"{vText}"</div>}
+                        <div className="saved-note-content">{noteText}</div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
+            </div>
+
+            {/* Modal Footer with Backup & Restore Buttons */}
+            <div className="saved-modal-footer">
+              <div className="saved-footer-info">
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                  {t(lang, 'backupRestoreTitle')}
+                </span>
+              </div>
+              <div className="saved-footer-actions">
+                <button 
+                  type="button" 
+                  className="saved-footer-btn"
+                  onClick={handleExportBackup}
+                  title={t(lang, 'exportBackup')}
+                >
+                  <Icons.Download />
+                  <span>{t(lang, 'exportBackup')}</span>
+                </button>
+                <button 
+                  type="button" 
+                  className="saved-footer-btn"
+                  onClick={() => fileInputRef.current?.click()}
+                  title={t(lang, 'importBackup')}
+                >
+                  <Icons.Upload />
+                  <span>{t(lang, 'importBackup')}</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1796,6 +3115,100 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Daily Verse Notification & Reminder Box */}
+              <div className="notif-settings-box">
+                <div className="notif-header-row">
+                  <div className="sync-info">
+                    <div className="sync-title">
+                      <Icons.Bell />
+                      <span>{t(lang, 'notifTitle')}</span>
+                    </div>
+                    <div className="sync-desc">
+                      {t(lang, 'notifDesc')}
+                    </div>
+                  </div>
+                  <label className="toggle-switch" title={t(lang, 'notifEnable')}>
+                    <input 
+                      type="checkbox" 
+                      checked={notifEnabled} 
+                      onChange={(e) => handleToggleNotification(e.target.checked)} 
+                    />
+                    <span className="toggle-slider"></span>
+                  </label>
+                </div>
+
+                {notifEnabled && (
+                  <div className="notif-details-panel">
+                    {/* Time Picker */}
+                    <div className="notif-field-group">
+                      <label className="notif-field-label">{t(lang, 'notifTimeLabel')}</label>
+                      <div className="notif-time-preset-row">
+                        {['06:00', '07:00', '12:00', '19:00', '21:00'].map((preset) => (
+                          <button
+                            key={preset}
+                            type="button"
+                            className={`preset-time-btn ${notifTime === preset ? 'active' : ''}`}
+                            onClick={() => handleUpdateNotifTime(preset)}
+                          >
+                            {preset}
+                          </button>
+                        ))}
+                        <input 
+                          type="time" 
+                          value={notifTime} 
+                          onChange={(e) => handleUpdateNotifTime(e.target.value)}
+                          className="notif-custom-time-input"
+                          title="Pilih jam kustom"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Test Notification Button */}
+                    <div className="notif-actions-row">
+                      <button 
+                        type="button"
+                        className="test-notif-btn"
+                        onClick={handleTestNotification}
+                      >
+                        <Icons.Bell />
+                        <span>{t(lang, 'notifTestBtn')}</span>
+                      </button>
+                    </div>
+
+                    {/* Cloudflare Worker URL Config (Collapsible) */}
+                    <div className="worker-config-box">
+                      <details className="worker-details">
+                        <summary className="worker-summary">
+                          ⚙️ {t(lang, 'notifWorkerTitle')}
+                        </summary>
+                        <div className="worker-inputs">
+                          <label className="notif-field-label">{t(lang, 'notifWorkerDesc')}</label>
+                          <div className="worker-input-wrap">
+                            <input 
+                              type="url" 
+                              value={notifWorkerUrl} 
+                              onChange={(e) => setNotifWorkerUrl(e.target.value)} 
+                              placeholder={t(lang, 'notifWorkerPlaceholder')}
+                              className="worker-text-input"
+                            />
+                            <button 
+                              type="button"
+                              className="worker-save-btn"
+                              onClick={handleSaveWorkerUrl}
+                            >
+                              {t(lang, 'notifWorkerSave')}
+                            </button>
+                          </div>
+                          <div className="worker-hint">
+                            Deploy Cloudflare Worker dari folder <code>serverless/cloudflare-worker/</code> agar notifikasi otomatis dikirim setiap hari via Web Push gratis.
+                          </div>
+                        </div>
+                      </details>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Offline Full Download Box */}
               <div className="offline-sync-box">
                 <div className="sync-info">
@@ -1816,6 +3229,40 @@ export default function App() {
                 >
                   {syncingOffline ? t(lang, 'downloading') : offlineStatus ? t(lang, 'downloaded') : t(lang, 'downloadAll')}
                 </button>
+              </div>
+
+              {/* Backup & Restore Data Box */}
+              <div className="offline-sync-box backup-sync-box">
+                <div className="sync-info">
+                  <div className="sync-title">
+                    <Icons.Download />
+                    <span>{t(lang, 'backupRestoreTitle')}</span>
+                  </div>
+                  <div className="sync-desc">
+                    {t(lang, 'backupDesc')}
+                  </div>
+                </div>
+                <div className="backup-btn-group">
+                  <button 
+                    type="button"
+                    className="sync-btn"
+                    onClick={handleExportBackup}
+                    title={t(lang, 'exportBackup')}
+                  >
+                    <Icons.Download />
+                    <span>{t(lang, 'exportBackup')}</span>
+                  </button>
+                  <button 
+                    type="button"
+                    className="sync-btn"
+                    style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-strong)' }}
+                    onClick={() => fileInputRef.current?.click()}
+                    title={t(lang, 'importBackup')}
+                  >
+                    <Icons.Upload />
+                    <span>{t(lang, 'importBackup')}</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1987,6 +3434,14 @@ export default function App() {
           </div>
         </div>
       )}
+      {/* Hidden File Input for JSON Backup Import */}
+      <input 
+        ref={fileInputRef} 
+        type="file" 
+        accept=".json" 
+        style={{ display: 'none' }} 
+        onChange={handleImportBackup} 
+      />
     </div>
   );
 }
