@@ -1,4 +1,4 @@
-const CACHE_NAME = 'alkitab-v5';
+const CACHE_NAME = 'alkitab-v6';
 const CORE_ASSETS = [
   '/',
   '/index.html',
@@ -28,6 +28,20 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
+
+  // For TTS audio stream requests, forward directly with stripped referrer
+  if (url.pathname === '/api/tts') {
+    const targetUrl = 'https://translate.google.com/translate_tts' + url.search;
+    event.respondWith(
+      fetch(targetUrl, {
+        referrerPolicy: 'no-referrer'
+      }).catch((err) => {
+        console.warn('TTS SW fetch failed:', err);
+        return new Response(null, { status: 502 });
+      })
+    );
+    return;
+  }
 
   // For books metadata, use Network First with Cache Fallback so updates are immediate
   if (url.pathname.includes('/data/books.json')) {

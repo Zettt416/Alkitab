@@ -344,6 +344,28 @@ export default function App() {
 
   // Text-To-Speech (Web Speech API) & Audio State
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const activeAudioRef = useRef(null);
+  const availableVoicesRef = useRef([]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      const loadVoices = () => {
+        try {
+          const v = window.speechSynthesis.getVoices();
+          if (v && v.length > 0) {
+            availableVoicesRef.current = v;
+          }
+        } catch {}
+      };
+      loadVoices();
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+      return () => {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.onvoiceschanged = null;
+        }
+      };
+    }
+  }, []);
 
   // Dynamic Verse Translation Modal State
   const [showTranslateModal, setShowTranslateModal] = useState(false);
@@ -854,52 +876,149 @@ export default function App() {
     return str.replace(/[\u0591-\u05AF\u05BD\u05BF\u05C0\u05C3\u05C4\u05C5]/g, '');
   };
 
-  // Text-To-Speech (Native Web Speech API - ponytail)
+  // Text-To-Speech (Native Web Speech API + High-Quality Audio Stream fallback - ponytail)
   const handleStopSpeech = () => {
+    if (activeAudioRef.current) {
+      try {
+        activeAudioRef.current.pause();
+        activeAudioRef.current.currentTime = 0;
+      } catch {}
+      activeAudioRef.current = null;
+    }
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
     setIsSpeaking(false);
   };
 
-  const handleSpeakText = (text, langCode) => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      showToast(t(lang, 'ttsUnsupported'));
-      return;
+  const playAudioStreamChunks = (text, langPrefix) => {
+    // Split into readable segments so chunks stay under Google TTS limits (~170 chars)
+    const rawParts = text.match(/([^.:;,\n\u05C3]+[.:;,\n\u05C3]?)/g) || [text];
+    const chunks = [];
+    let currentChunk = '';
+
+    for (const part of rawParts) {
+      if ((currentChunk + ' ' + part).length > 170) {
+        if (currentChunk.trim()) chunks.push(currentChunk.trim());
+        currentChunk = part;
+      } else {
+        currentChunk = (currentChunk + ' ' + part).trim();
+      }
     }
+    if (currentChunk.trim()) chunks.push(currentChunk.trim());
+    if (chunks.length === 0) chunks.push(text.slice(0, 170));
+
+    let currentIndex = 0;
+    setIsSpeaking(true);
+
+    const playNext = () => {
+      if (currentIndex >= chunks.length) {
+        setIsSpeaking(false);
+        activeAudioRef.current = null;
+        return;
+      }
+
+      const chunkText = chunks[currentIndex++];
+      const cleanChunk = stripCantillation(chunkText).trim();
+      if (!cleanChunk) {
+        playNext();
+        return;
+      }
+
+      // Use local dev proxy in DEV to bypass referrer checks, or direct URL with no-referrer
+      const ttsUrl = import.meta.env.DEV
+        ? `/api/tts?ie=UTF-8&tl=${langPrefix}&client=tw-ob&q=${encodeURIComponent(cleanChunk)}`
+        : `https://translate.google.com/translate_tts?ie=UTF-8&tl=${langPrefix}&client=tw-ob&q=${encodeURIComponent(cleanChunk)}`;
+
+      const audio = new Audio();
+      audio.referrerPolicy = 'no-referrer';
+      audio.src = ttsUrl;
+      activeAudioRef.current = audio;
+
+      audio.onended = () => {
+        playNext();
+      };
+      audio.onerror = (e) => {
+        console.warn('TTS Audio error:', e);
+        // Fallback attempt with direct URL if dev proxy had an issue
+        if (ttsUrl.startsWith('/api/tts')) {
+          const directUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${langPrefix}&client=tw-ob&q=${encodeURIComponent(cleanChunk)}`;
+          const directAudio = new Audio();
+          directAudio.referrerPolicy = 'no-referrer';
+          directAudio.src = directUrl;
+          activeAudioRef.current = directAudio;
+          directAudio.onended = () => playNext();
+          directAudio.onerror = () => {
+            setIsSpeaking(false);
+            activeAudioRef.current = null;
+            showToast(t(lang, 'gagalMemuat') || 'Gagal memutar audio');
+          };
+          directAudio.play().catch(() => {
+            setIsSpeaking(false);
+            activeAudioRef.current = null;
+          });
+          return;
+        }
+        setIsSpeaking(false);
+        activeAudioRef.current = null;
+        showToast(t(lang, 'gagalMemuat') || 'Gagal memutar audio');
+      };
+
+      audio.play().catch((err) => {
+        console.warn('TTS play() caught error:', err);
+        setIsSpeaking(false);
+        activeAudioRef.current = null;
+      });
+    };
+
+    playNext();
+  };
+
+  const handleSpeakText = (text, langCode) => {
+    if (!text || !text.trim()) return;
 
     if (isSpeaking) {
       handleStopSpeech();
       return;
     }
 
-    if (!text || !text.trim()) return;
-
-    window.speechSynthesis.cancel();
-    const cleanText = stripCantillation(text.replace(/<[^>]+>/g, '')).trim();
-    const utter = new SpeechSynthesisUtterance(cleanText);
     const targetCode = langCode || getLanguageCodeForVersion(version);
-    utter.lang = targetCode;
-    utter.rate = 0.95;
+    const prefix = targetCode.split('-')[0].toLowerCase();
+    const cleanText = stripCantillation(text.replace(/<[^>]+>/g, '')).trim();
 
-    try {
-      const voices = window.speechSynthesis.getVoices();
-      if (voices && voices.length > 0) {
-        const prefix = targetCode.split('-')[0].toLowerCase();
-        const matched = voices.find((v) => v.lang.toLowerCase().startsWith(prefix));
-        if (matched) {
-          utter.voice = matched;
-        }
-      }
-    } catch {
-      // ignore
+    // Check if browser has an authentic native voice matching this language (including Hebrew 'he' / 'iw')
+    let matchedVoice = null;
+    const isHebrew = prefix === 'he' || prefix === 'iw';
+    const voices = (availableVoicesRef.current && availableVoicesRef.current.length > 0)
+      ? availableVoicesRef.current
+      : (typeof window !== 'undefined' && 'speechSynthesis' in window ? window.speechSynthesis.getVoices() : []);
+
+    if (voices && voices.length > 0) {
+      matchedVoice = voices.find((v) => {
+        const l = v.lang.toLowerCase();
+        return l.startsWith(prefix) || (isHebrew && l.startsWith('iw'));
+      });
     }
 
-    utter.onstart = () => setIsSpeaking(true);
-    utter.onend = () => setIsSpeaking(false);
-    utter.onerror = () => setIsSpeaking(false);
+    // If an authentic native voice is found on the device, use Web Speech API
+    if (matchedVoice) {
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(cleanText);
+      utter.lang = matchedVoice.lang || targetCode;
+      utter.voice = matchedVoice;
+      utter.rate = 0.95;
 
-    window.speechSynthesis.speak(utter);
+      utter.onstart = () => setIsSpeaking(true);
+      utter.onend = () => setIsSpeaking(false);
+      utter.onerror = () => setIsSpeaking(false);
+
+      window.speechSynthesis.speak(utter);
+      return;
+    }
+
+    // If no native voice matching the language is installed (e.g. Hebrew on Windows default):
+    // Play authentic native audio stream so it NEVER speaks with the wrong English voice!
+    playAudioStreamChunks(cleanText, prefix);
   };
 
   const handleSpeakVerses = (verses) => {
